@@ -1,7 +1,7 @@
 # GenderPayGap
 
 ---------
-##Important links for the project
+## Important links for the project
 
 **Jamboard** to put the ideas : https://jamboard.google.com/d/1GBV7s59vDssh45b6817W1u1oOgsXIpzDuiVXgcNwClk/viewer?f=0
 
