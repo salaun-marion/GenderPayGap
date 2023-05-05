@@ -11,7 +11,7 @@ library(dplyr)
 
 #Solution from this video : https://www.youtube.com/watch?v=AgWgPSZ7Gp0
 
-##create a data frame and mixe it with the world df with coordinates
+##create a data frame and mix it with the world df with coordinates
 data <- data.frame(countries = payGapEurope$Country, GDP = payGapEurope$GDP)
 colnames(data)[1]  <- "region"
 
@@ -31,10 +31,10 @@ map1
 
 map2 <- map1 + scale_fill_gradient(name= "Gender pay gap with GDP", low = "yellow", high = "red", na.value= "grey")+
   theme(axis.text.x = element_blank(),
-        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
         axis.ticks = element_blank(),
         axis.title.y = element_blank(),
-        axis_title.x=element_blank(),
+        axis.title.x = element_blank(),
         rect = element_blank())
 map2
 
