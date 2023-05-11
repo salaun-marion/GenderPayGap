@@ -73,7 +73,8 @@ server <- function(input, output) {
         rect = element_blank()
       )
     
-  })
+    },width=500,height=650)
+    
 }
 
 # Run the application 
