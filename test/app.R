@@ -42,7 +42,7 @@ ui <- fluidPage(
       selectInput("jobField", "Choose the Job field :",
                   choices=colname),
     ),
-    
+
     mainPanel(
       plotOutput(outputId = "distPlot")
     )
