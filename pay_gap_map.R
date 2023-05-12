@@ -38,6 +38,10 @@ map2 <- map1 + scale_fill_gradient(name= "Gender pay gap with GDP", low = "yello
         rect = element_blank())
 map2
 
+map3 <- ggplot(european, aes (x=long, y = lat, group =group))+
+  geom_polygon(aes(fill=european$region), color = "black")
+map3
+
 # #EU Countries
 # 
 # some.eu.countries <- c(
