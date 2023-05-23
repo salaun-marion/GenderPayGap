@@ -13,7 +13,7 @@ library(ggplot2)
 library(maps)
 library(rworldmap)
 library(hexbin)
-
+library(bslib)
 
 #Load datasets
 
@@ -25,11 +25,11 @@ colnames(data) <- c("region","year","GDP","Urban population","Industry","Busines
                   "Administrative","Public administration","Education",
                   "Health","Arts","Other")
 
-# colnames(data)[1]  <- "region"
-# colnames(data)[2]  <- "year"
 worldmap <- map_data("world")
-mapdata <- left_join(worldmap, data, by="region", relationship = "many-to-many")
-mapdata <- mapdata %>% filter(!is.na(mapdata$GDP))
+#glimpse(data)
+
+mapdata <- left_join(data, worldmap, by="region", relationship = "many-to-many")
+
 selectedcolumn = c("GDP","Industry","Business","Mining", 
                 "Manufacturing","Electricity supply","Water supply","Construction",
                 "Retail","Transportation","Accommodation","Information",
@@ -39,6 +39,17 @@ selectedcolumn = c("GDP","Industry","Business","Mining",
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+  
+  
+  # theme 
+  theme = bs_theme(version = 4, bootswatch = "minty"),
+  
+  # page_navbar(
+  #   sidebar = sidebar("Sidebar"),
+  #   nav("Page 1", map),
+  #   nav("Page 2", "Page 2 content")
+  # ),
+  # 
   
   titlePanel("Gender Pay Gap"),
   
@@ -52,10 +63,11 @@ ui <- fluidPage(
                   choices=selectedcolumn),
       tableOutput("view"),
     ),
-    
     mainPanel(
-      plotOutput(outputId = "distPlot"),
-      
+      tabsetPanel(type ="tab",
+                  tabPanel("Map",plotOutput("distPlot")),
+                  tabPanel("Data",tableOutput("distData"))
+      )
     )
   )
 )
@@ -80,7 +92,7 @@ server <- function(input, output) {
             )
           map
        
-          },width=800,height=950)
+          },width=600,height=750)
       
       output$view <- renderTable({
         year_map1 <- subset(mapdata, year==input$yearCursor,select = -c(long,lat,group,order,subregion))
@@ -88,8 +100,12 @@ server <- function(input, output) {
         data1 <- select(year_map1,region,input$jobField)
         data1 <- data1[order(data1$region),]
         
-        head(data1, n=27)
+        head(data1, n=10)
       })
+      
+      output$distData <- renderTable(
+        data
+      )
     
 }
 
