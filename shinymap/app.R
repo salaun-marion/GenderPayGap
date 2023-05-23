@@ -14,6 +14,7 @@ library(maps)
 library(rworldmap)
 library(hexbin)
 library(bslib)
+library(shinydashboard)
 
 #Load datasets
 
@@ -37,40 +38,42 @@ selectedcolumn = c("GDP","Industry","Business","Mining",
                 "Administrative","Public administration","Education",
                 "Health","Arts","Other")
 
-# Define UI for application that draws a histogram
-ui <- fluidPage(
+
+# Header ----
+header <- dashboardHeader(title="Gender Pay Gap")
+
+# SideBar ----
+
+sidebar <- dashboardSidebar(
+  conditionalPanel(condition="input.tabselected==1",
+                   sliderInput("yearCursor", "Years :",
+                               min = 2010, max = 2021,
+                               value = 2010, step = 2, sep = "",
+                               animate = TRUE),
+                   selectInput("jobField", "Choose the Job field :",
+                               choices=selectedcolumn),
+                   tableOutput("view")
+  ),
   
-  
-  # theme 
-  theme = bs_theme(version = 4, bootswatch = "minty"),
-  
-  # page_navbar(
-  #   sidebar = sidebar("Sidebar"),
-  #   nav("Page 1", map),
-  #   nav("Page 2", "Page 2 content")
-  # ),
-  # 
-  
-  titlePanel("Gender Pay Gap"),
-  
-  sidebarLayout(
-    sidebarPanel(
-      sliderInput("yearCursor", "Years :",
-                  min = 2010, max = 2021,
-                  value = 2010, step = 2, sep = "",
-                  animate = TRUE),
-      selectInput("jobField", "Choose the Job field :",
-                  choices=selectedcolumn),
-      tableOutput("view"),
-    ),
-    mainPanel(
-      tabsetPanel(type ="tab",
-                  tabPanel("Map",plotOutput("distPlot")),
-                  tabPanel("Data",tableOutput("distData"))
-      )
+  conditionalPanel(condition="input.tabselected==2",
+                   selectInput('select','choice',choices=c("A","B"))
+  )
+)
+
+# Body ----
+body <- dashboardBody(
+  mainPanel(
+    tabsetPanel(
+      tabPanel("Map", value=1,
+               plotOutput("distPlot")),
+      tabPanel("Data", value=2,
+               tableOutput("distData")),
+      id = "tabselected"
     )
   )
 )
+ui <- dashboardPage(header, sidebar, body, skin='purple')
+
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
@@ -92,7 +95,7 @@ server <- function(input, output) {
             )
           map
        
-          },width=600,height=750)
+          },width=500,height=550)
       
       output$view <- renderTable({
         year_map1 <- subset(mapdata, year==input$yearCursor,select = -c(long,lat,group,order,subregion))
@@ -100,7 +103,7 @@ server <- function(input, output) {
         data1 <- select(year_map1,region,input$jobField)
         data1 <- data1[order(data1$region),]
         
-        head(data1, n=10)
+        head(data1, n=27)
       })
       
       output$distData <- renderTable(
