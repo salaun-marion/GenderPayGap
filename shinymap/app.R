@@ -30,6 +30,8 @@ worldmap <- map_data("world")
 
 mapdata <- left_join(data, worldmap, by="region", relationship = "many-to-many")
 
+allcolumnNames = c(colnames(data))
+
 selectedcolumn = c("GDP","Industry","Business","Mining", 
                 "Manufacturing","Electricity supply","Water supply","Construction",
                 "Retail","Transportation","Accommodation","Information",
@@ -55,22 +57,35 @@ sidebar <- dashboardSidebar(
   ),
   
   conditionalPanel(condition="input.tabselected==2",
-                   selectInput("country","Select Country:",
+                   checkboxGroupInput("country","Select Country:",
                                       choices = selectedcountries,
-                                      selected = c("France"), multiple =TRUE,
+                                      selected = c("France"),
+                   ),
+  ),
+  conditionalPanel(condition="input.tabselected==3",
+                   selectInput("variables","Select variables:",
+                                      choices = allcolumnNames,
+                                      selected = c("region"),
+                                      multiple=TRUE,
                    ),
   )
 )
-
 
 # Body ----
 body <- dashboardBody(
   mainPanel(
     tabsetPanel(
       tabPanel("Map", value=1,
-               column(10,plotOutput("distPlot")),column(2,tableOutput("viewCountries"))),
+                 fluidRow(
+                   box(title = "Map of Europe", height = 650,width = 7, plotOutput("distPlot")),
+                   box(width = 5, height = 650, tableOutput("viewCountries")),
+                 )
+               ),
       tabPanel("Plot", value=2,
-               plotOutput("linePlot")),
+               fluidRow(
+                   box(width = 12,plotOutput("linePlot")),
+                )
+              ),
       tabPanel("Data", value=3,
                tableOutput("distData")),
       id = "tabselected"
@@ -78,7 +93,7 @@ body <- dashboardBody(
   ),
   tags$head(tags$style(HTML('
                                 .main-sidebar{
-                                  width: 220px;
+                                  width: 200px;
                                 }
                                 /* body */
                                 .content-wrapper, .right-side {
@@ -96,7 +111,9 @@ server <- function(input, output) {
       #create the map
       output$distPlot <- renderPlot({
           year_map <- subset(mapdata, year==input$yearCursor)
-          data <- select(year_map,long,lat,group,order,region,subregion,year,input$jobField)
+          data <- year_map %>%
+            dplyr::select(long, lat, group, order, region, subregion, year, !!input$jobField)
+          
           
           map <- ggplot(data, aes(x = long, y = lat, group = group)) +
             geom_polygon(aes(fill = !!sym(input$jobField)), color = "gray", linetype=1) +
@@ -111,15 +128,16 @@ server <- function(input, output) {
             )
           map
        
-          },width=800,height=1000)
+          })
       
       #create the table closed to the map
       output$viewCountries <- renderTable({
         year_map1 <- subset(mapdata, year==input$yearCursor,select = -c(long,lat,group,order,subregion))
         year_map1 <- year_map1 %>% distinct(.keep_all=TRUE)
-        data1 <- select(year_map1,region,input$jobField)
+        data1 <- year_map1 %>%
+          dplyr::select(region, !!input$jobField)
         data1 <- data1[order(data1$region),]
-        head(data1, n=27)
+        head(data1, n = 18)
       })
       
       #Line plot
@@ -147,14 +165,15 @@ server <- function(input, output) {
           ggplot() +
           geom_point(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
           geom_line(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
-          facet_wrap(vars(region), ncol=10) +
+          facet_wrap(vars(region), ncol=5) +
           theme_bw()
 
-      },width=1000,height=900)
+      },width=500,height=400)
       
       #show dataset
       output$distData <- renderTable(
-        data
+        data %>%
+          dplyr::select(unlist(input$variables, use.names = FALSE))
       )
       
       
