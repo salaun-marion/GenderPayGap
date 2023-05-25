@@ -12,9 +12,8 @@ library(tidyverse)
 library(ggplot2)
 library(maps)
 library(rworldmap)
-library(hexbin)
-library(bslib)
 library(shinydashboard)
+library(reshape2)
 
 #Load datasets
 
@@ -38,6 +37,7 @@ selectedcolumn = c("GDP","Industry","Business","Mining",
                 "Administrative","Public administration","Education",
                 "Health","Arts","Other")
 
+selectedcountries = c(unique(data$region))
 
 # Header ----
 header <- dashboardHeader(title="Gender Pay Gap")
@@ -52,25 +52,40 @@ sidebar <- dashboardSidebar(
                                animate = TRUE),
                    selectInput("jobField", "Choose the Job field :",
                                choices=selectedcolumn),
-                   tableOutput("view")
   ),
   
   conditionalPanel(condition="input.tabselected==2",
-                   selectInput('select','choice',choices=c("A","B"))
+                   selectInput("country","Select Country:",
+                                      choices = selectedcountries,
+                                      selected = c("France"), multiple =TRUE,
+                   ),
   )
 )
+
 
 # Body ----
 body <- dashboardBody(
   mainPanel(
     tabsetPanel(
       tabPanel("Map", value=1,
-               plotOutput("distPlot")),
-      tabPanel("Data", value=2,
+               column(10,plotOutput("distPlot")),column(2,tableOutput("viewCountries"))),
+      tabPanel("Plot", value=2,
+               plotOutput("linePlot")),
+      tabPanel("Data", value=3,
                tableOutput("distData")),
       id = "tabselected"
     )
-  )
+  ),
+  tags$head(tags$style(HTML('
+                                .main-sidebar{
+                                  width: 220px;
+                                }
+                                /* body */
+                                .content-wrapper, .right-side {
+                                background-color: #ffffff;
+                                }
+                                
+                                ')))
 )
 ui <- dashboardPage(header, sidebar, body, skin='purple')
 
@@ -78,6 +93,7 @@ ui <- dashboardPage(header, sidebar, body, skin='purple')
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   
+      #create the map
       output$distPlot <- renderPlot({
           year_map <- subset(mapdata, year==input$yearCursor)
           data <- select(year_map,long,lat,group,order,region,subregion,year,input$jobField)
@@ -91,24 +107,57 @@ server <- function(input, output) {
               axis.ticks = element_blank(),
               axis.title.y = element_blank(),
               axis.title.x = element_blank(),
-              rect = element_blank()
+              rect = element_blank(),
             )
           map
        
-          },width=500,height=550)
+          },width=800,height=1000)
       
-      output$view <- renderTable({
+      #create the table closed to the map
+      output$viewCountries <- renderTable({
         year_map1 <- subset(mapdata, year==input$yearCursor,select = -c(long,lat,group,order,subregion))
         year_map1 <- year_map1 %>% distinct(.keep_all=TRUE)
         data1 <- select(year_map1,region,input$jobField)
         data1 <- data1[order(data1$region),]
-        
         head(data1, n=27)
       })
       
+      #Line plot
+      output$linePlot <- renderPlot({
+        
+        countryname <- req(input$country)
+        
+        plotLineData <- data %>%
+          pivot_longer(cols = -c("region","year","GDP","Urban population"), names_to = 'Domain', values_to = 'GPG')
+        
+        plotLineData2 <- plotLineData %>%
+          mutate(JobSectors = case_when(Domain %in% c('Retail') ~ 'Trade and commerce',
+                                        Domain %in% c('Manufacturing') ~ 'Manufacturing and production',
+                                        Domain %in% c('Electricty supply', 'Water supply','Mining', 'Construction') ~ 'Primary Industry and Infrastructure',
+                                        Domain %in% c("Business","Transportation","Accommodation","Information",
+                                                      "Financial","Real estate","Science",
+                                                      "Administrative") ~ 'Service and information',
+                                        is.na(Domain) ~ 'Public sector and social services',
+                                        TRUE ~ 'Others'
+          ))%>%
+          filter(region %in% countryname) %>%
+          group_by(region,JobSectors, year) %>%
+          summarize(GPG=mean(GPG,na.rm = TRUE))
+        plotLineData2 %>%
+          ggplot() +
+          geom_point(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
+          geom_line(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
+          facet_wrap(vars(region), ncol=10) +
+          theme_bw()
+
+      },width=1000,height=900)
+      
+      #show dataset
       output$distData <- renderTable(
         data
       )
+      
+      
     
 }
 

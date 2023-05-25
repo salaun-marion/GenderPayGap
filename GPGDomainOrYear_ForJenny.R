@@ -2,10 +2,6 @@ library(shiny)
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
-library(maps)
-library(rworldmap)
-library(hexbin)
-library(bslib)
 
 #Load datasets
 
@@ -16,11 +12,6 @@ colnames(data) <- c("region","year","GDP","Urban population","Industry","Busines
                     "Financial","Real estate","Science",
                     "Administrative","Public administration","Education",
                     "Health","Arts","Other")
-
-worldmap <- map_data("world")
-#glimpse(data)
-
-mapdata <- left_join(data, worldmap, by="region", relationship = "many-to-many")
 
 tidyData <- data %>%
   pivot_longer(cols = -c("region","year","GDP","Urban population"), names_to = 'Domain', values_to = 'GPG')
@@ -42,5 +33,6 @@ tidyData2 %>%
   ggplot() +
   geom_point(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
   geom_line(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
+  facet_wrap(~region)
   theme_bw()
 
