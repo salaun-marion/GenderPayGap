@@ -70,10 +70,11 @@ sidebar <- dashboardSidebar(
                                choices=selectedcolumn),
   ),
   conditionalPanel(condition="input.tabselected==2",
-                   actionButton("allofthemButton", "Select all countries"),
                    checkboxGroupInput("country","Select Country:",
                                       choices = selectedcountries,
                                       selected = c("France"),),
+                   actionLink("selectall","Select All"),
+                   actionLink("reset","Reset") 
   ),
   conditionalPanel(condition="input.tabselected==3",
                    selectInput("variables","Select variables:",
@@ -132,7 +133,7 @@ body <- dashboardBody(
 ui <- dashboardPage(header, sidebar, body, skin='purple')
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {
+server <- function(input, output, session) {
   
       #create the map
       output$distPlot <- renderPlot({
@@ -171,6 +172,25 @@ server <- function(input, output) {
         
         countryname <- req(input$country)
         
+        observe({
+          
+          if(input$selectall == 0){ 
+            return(NULL) 
+          }else{
+            updateCheckboxGroupInput(session,"country","Select Country:",
+                                     choices = selectedcountries,
+                                     selected = selectedcountries)
+          }
+          
+          if(input$reset == 0){
+            return(NULL)
+          }else{
+            updateCheckboxGroupInput(session,"country","Select Country:",
+                                     choices = selectedcountries,
+                                     selected = c("France"))
+          }
+        })
+        
         plotLineData <- data %>%
           pivot_longer(cols = -c("region","year","GDP","Urban population","Average"), names_to = 'Domain', values_to = 'GPG')
         
@@ -195,7 +215,7 @@ server <- function(input, output) {
           facet_wrap(vars(region), ncol=5) +
           theme_bw()
 
-      },width=1000,height=800)
+      },width=900,height=800)
       
       #Correlation matrix
       output$corrMatrix <- renderPlot({
