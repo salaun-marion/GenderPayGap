@@ -28,7 +28,7 @@ colnames(data) <- c("region","year","GDP","Urban population","Industry","Busines
                   "Retail","Transportation","Accommodation","Information",
                   "Financial","Real estate","Science",
                   "Administrative","Public administration","Education",
-                  "Health","Arts","Other")
+                  "Health","Arts","Other","Average")
 
 worldmap <- map_data("world")
 #glimpse(data)
@@ -70,7 +70,6 @@ sidebar <- dashboardSidebar(
                                choices=selectedcolumn),
   ),
   conditionalPanel(condition="input.tabselected==2",
-                   actionButton("resetButton", "Reset"),
                    actionButton("allofthemButton", "Select all countries"),
                    checkboxGroupInput("country","Select Country:",
                                       choices = selectedcountries,
@@ -173,7 +172,7 @@ server <- function(input, output) {
         countryname <- req(input$country)
         
         plotLineData <- data %>%
-          pivot_longer(cols = -c("region","year","GDP","Urban population"), names_to = 'Domain', values_to = 'GPG')
+          pivot_longer(cols = -c("region","year","GDP","Urban population","Average"), names_to = 'Domain', values_to = 'GPG')
         
         plotLineData2 <- plotLineData %>%
           mutate(JobSectors = case_when(Domain %in% c('Retail') ~ 'Trade and commerce',
@@ -186,8 +185,9 @@ server <- function(input, output) {
                                         TRUE ~ 'Others'
           ))%>%
           filter(region %in% countryname) %>%
-          group_by(region,JobSectors, year) %>%
+          group_by(region,JobSectors,year) %>%
           summarize(GPG=mean(GPG,na.rm = TRUE))
+        
         plotLineData2 %>%
           ggplot() +
           geom_point(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
