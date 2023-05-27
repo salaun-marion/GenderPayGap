@@ -89,6 +89,13 @@ sidebar <- dashboardSidebar(
                                selected = c("region"),
                                multiple=TRUE,
                    ),
+  ),
+  conditionalPanel(condition="input.tabselected==5",
+                   selectInput("variables","Select variables:",
+                               choices = allcolumnNames,
+                               selected = c("region"),
+                               multiple=TRUE,
+                   ),
   )
 )
 
@@ -105,13 +112,9 @@ body <- dashboardBody(
       tabPanel("Plot", value=2,
                   plotOutput("linePlot"),
               ),
-      tabPanel("Correlation", value=3, 
-                  fluidRow(
-                    box(width=6, height = 500, plotOutput("corrMatrix")),
-                    box(width=6, height = 500, plotOutput("boxPlot"))
-                  )
-               ),
-      tabPanel("Data", value=4,
+      tabPanel("Correlation", value=3, plotOutput("corrMatrix")),
+      tabPanel("Box plot", value=4,plotOutput("boxPlot")),
+      tabPanel("Data", value=5,
                tableOutput("distData")),
       id = "tabselected"
     )
@@ -135,11 +138,11 @@ server <- function(input, output) {
       #create the map
       output$distPlot <- renderPlot({
           year_map <- subset(mapdata, year==input$yearCursor)
-          data <- year_map %>%
+          mapdata <- year_map %>%
             dplyr::select(long, lat, group, order, region, subregion, year, !!input$jobField)
           
           
-          map <- ggplot(data, aes(x = long, y = lat, group = group)) +
+          map <- ggplot(mapdata, aes(x = long, y = lat, group = group)) +
             geom_polygon(aes(fill = !!sym(input$jobField)), color = "gray", linetype=1) +
             scale_fill_viridis_c(alpha = 0.75, option="A")+
             theme(
@@ -222,7 +225,7 @@ server <- function(input, output) {
                 labCol = allcolumnNames,
                 labRow = allcolumnNames,
                 col= palette,
-                # scale="column", # scale allow the normalization
+                scale="column", # scale allow the normalization
                 symm = TRUE)
         legend(x = "bottomright", c("Max", "Mid","Min"), fill = c("Purple","Beige","Brown"))
         
@@ -230,7 +233,7 @@ server <- function(input, output) {
       
       #Boxplot
       output$boxPlot <- renderPlot({
-        
+
         dataAvg <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
         dataAvg <- transform(dataAvg, subgroup = case_when(
           Country %in% central_europe ~ "Central Europe",
@@ -239,14 +242,14 @@ server <- function(input, output) {
           Country %in% southern_europe ~ "Southern Europe",
           TRUE ~ "Other"
         ))
-        
-        p1 <- ggplot(dataAvg, aes(x=dataAvg$Average, y=Urban_population)) + geom_point(aes(col=subgroup))
+
+        p1 <- ggplot(dataAvg, aes(x=Average, y=Urban_population)) + geom_point(aes(col=subgroup))
         p2 <- ggplot(dataAvg, aes(x=subgroup, y=GDP, fill=subgroup)) + geom_boxplot()
         p3 <- ggplot(dataAvg, aes(x=subgroup, y=Average, fill=subgroup)) + geom_boxplot()
         grid.arrange(p2, p3, nrow = 1, widths = c(1, 1))
         par(mfrow=c(1,1))
-      
-      })
+
+      }, width = 1000, height = 700)
       
       #show dataset
       output$distData <- renderTable(
