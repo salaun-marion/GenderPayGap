@@ -23,11 +23,11 @@ library(gridExtra)
 
 ## -- FOR THE MAP
 data <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
-colnames(data) <- c("region","year","GDP","Urban population","Industry","Business","Mining", 
-                  "Manufacturing","Electricity supply","Water supply","Construction",
+colnames(data) <- c("region","year","GDP","UrbanPopulation","Industry","Business","Mining", 
+                  "Manufacturing","ElectricitySupply","WaterSupply","Construction",
                   "Retail","Transportation","Accommodation","Information",
-                  "Financial","Real estate","Science",
-                  "Administrative","Public administration","Education",
+                  "Financial","RealEstate","Science",
+                  "Administrative","PublicAdministration","Education",
                   "Health","Arts","Other","Average")
 
 worldmap <- map_data("world")
@@ -74,7 +74,7 @@ sidebar <- dashboardSidebar(
                                       choices = selectedcountries,
                                       selected = c("France"),),
                    actionLink("selectall","Select All"),
-                   actionLink("reset","Reset") 
+                   # actionLink("reset","Reset") 
   ),
   conditionalPanel(condition="input.tabselected==3",
                    selectInput("variables","Select variables:",
@@ -84,19 +84,24 @@ sidebar <- dashboardSidebar(
                    ),
   ),
   conditionalPanel(condition="input.tabselected==4",
-                   selectInput("variables","Select variables:",
+                   selectInput("variablesOne","Select variables:",
                                choices = allcolumnNames,
-                               selected = c("region"),
-                               multiple=TRUE,
+                               selected = c("Average"),
+                            
                    ),
-  ),
-  conditionalPanel(condition="input.tabselected==5",
-                   selectInput("variables","Select variables:",
+                   selectInput("variablesTwo","Select variables:",
                                choices = allcolumnNames,
-                               selected = c("region"),
-                               multiple=TRUE,
+                               selected = c("UrbanPopulation"),
+                             
                    ),
   )
+  # conditionalPanel(condition="input.tabselected==5",
+  #                  selectInput("variables","Select variables:",
+  #                              choices = allcolumnNames,
+  #                              selected = c("region"),
+  #                              multiple=TRUE,
+  #                  ),
+  # )
 )
 
 # Body ----
@@ -105,8 +110,12 @@ body <- dashboardBody(
     tabsetPanel(
       tabPanel("Map", value=1,
                    fluidRow(
-                     box(title = "Map of Europe", height = 650,width = 7, plotOutput("distPlot")),
-                     box(width = 5, height = 650, tableOutput("viewCountries")),
+                     box(title = "Map of Europe", height = 500,width = 6, plotOutput("distPlot")),
+                     box(width = 3, height = 500, tableOutput("viewCountries1")),
+                     box(width = 3, height = 500, tableOutput("viewCountries2")),
+                     div(HTML("<b>Gender Pay Gap (GPG)</b> is computed as : 
+                     <em>(Men's Average Earnings - Women's Average Earnings) / Men's Average Earnings</em> 
+                       which means if GPG = 0.20, women earn 20% less than men in the same company."),style="text-align:center")
                    )
                ),
       tabPanel("Plot", value=2,
@@ -114,8 +123,8 @@ body <- dashboardBody(
               ),
       tabPanel("Correlation", value=3, plotOutput("corrMatrix")),
       tabPanel("Box plot", value=4,plotOutput("boxPlot")),
-      tabPanel("Data", value=5,
-               tableOutput("distData")),
+      # tabPanel("Data", value=5,
+      #          tableOutput("distData")),
       id = "tabselected"
     )
   ),
@@ -158,13 +167,23 @@ server <- function(input, output, session) {
           })
       
       #create the table closed to the map
-      output$viewCountries <- renderTable({
-        year_map1 <- subset(mapdata, year==input$yearCursor,select = -c(long,lat,group,order,subregion))
-        year_map1 <- year_map1 %>% distinct(.keep_all=TRUE)
-        data1 <- year_map1 %>%
-          dplyr::select(region, !!input$jobField)
-        data1 <- data1[order(data1$region),]
-        head(data1, n = 18)
+      output$viewCountries1 <- renderTable({
+        data1 <- subset(mapdata,year == input$yearCursor)
+        data1 <- data1 %>% dplyr::select(region, !!input$jobField)
+        data1<-data1 %>% distinct(.keep_all=TRUE)
+        
+        n=13
+        firstTable <- data1[row.names(data1) %in% 1:n, ]
+        head(firstTable, n )
+      })
+      output$viewCountries2 <- renderTable({
+        data1 <- subset(mapdata,year == input$yearCursor)
+        data1 <- data1 %>% dplyr::select(region, !!input$jobField)
+        data1 <- data1 %>% distinct(.keep_all=TRUE)
+        
+        n=13
+        secondtTable <- data1[row.names(data1) %in% (n+1):nrow(data1), ]
+        head(secondtTable, n)
       })
       
       #Line plot
@@ -173,7 +192,6 @@ server <- function(input, output, session) {
         countryname <- req(input$country)
         
         observe({
-          
           if(input$selectall == 0){ 
             return(NULL) 
           }else{
@@ -181,25 +199,18 @@ server <- function(input, output, session) {
                                      choices = selectedcountries,
                                      selected = selectedcountries)
           }
-          
-          if(input$reset == 0){
-            return(NULL)
-          }else{
-            updateCheckboxGroupInput(session,"country","Select Country:",
-                                     choices = selectedcountries,
-                                     selected = c("France"))
-          }
+       
         })
         
         plotLineData <- data %>%
-          pivot_longer(cols = -c("region","year","GDP","Urban population","Average"), names_to = 'Domain', values_to = 'GPG')
+          pivot_longer(cols = -c("region","year","GDP","UrbanPopulation","Average"), names_to = 'Domain', values_to = 'GPG')
         
         plotLineData2 <- plotLineData %>%
           mutate(JobSectors = case_when(Domain %in% c('Retail') ~ 'Trade and commerce',
                                         Domain %in% c('Manufacturing') ~ 'Manufacturing and production',
-                                        Domain %in% c('Electricty supply', 'Water supply','Mining', 'Construction') ~ 'Primary Industry and Infrastructure',
+                                        Domain %in% c('ElectrictySupply', 'WaterSupply','Mining', 'Construction') ~ 'Primary Industry and Infrastructure',
                                         Domain %in% c("Business","Transportation","Accommodation","Information",
-                                                      "Financial","Real estate","Science",
+                                                      "Financial","RealEstate","Science",
                                                       "Administrative") ~ 'Service and information',
                                         is.na(Domain) ~ 'Public sector and social services',
                                         TRUE ~ 'Others'
@@ -210,8 +221,8 @@ server <- function(input, output, session) {
         
         plotLineData2 %>%
           ggplot() +
-          geom_point(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
-          geom_line(aes(x = year, y = GPG, color = (JobSectors), group= JobSectors)) +
+          geom_point(aes(x = year, y = GPG, color = (JobSectors), group = JobSectors)) +
+          geom_line(aes(x = year, y = GPG, color = (JobSectors), group = JobSectors)) +
           facet_wrap(vars(region), ncol=5) +
           theme_bw()
 
@@ -254,28 +265,28 @@ server <- function(input, output, session) {
       #Boxplot
       output$boxPlot <- renderPlot({
 
-        dataAvg <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
-        dataAvg <- transform(dataAvg, subgroup = case_when(
-          Country %in% central_europe ~ "Central Europe",
-          Country %in% northern_europe ~ "Northern Europe",
-          Country %in% eastern_europe ~ "Eastern Europe",
-          Country %in% southern_europe ~ "Southern Europe",
+        # dataAvg <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
+        data <- transform(data, subgroup = case_when(
+          region %in% central_europe ~ "Central Europe",
+          region %in% northern_europe ~ "Northern Europe",
+          region %in% eastern_europe ~ "Eastern Europe",
+          region %in% southern_europe ~ "Southern Europe",
           TRUE ~ "Other"
         ))
 
-        p1 <- ggplot(dataAvg, aes(x=Average, y=Urban_population)) + geom_point(aes(col=subgroup))
-        p2 <- ggplot(dataAvg, aes(x=subgroup, y=GDP, fill=subgroup)) + geom_boxplot()
-        p3 <- ggplot(dataAvg, aes(x=subgroup, y=Average, fill=subgroup)) + geom_boxplot()
-        grid.arrange(p2, p3, nrow = 1, widths = c(1, 1))
+        p1 <- ggplot(data, aes(x=subgroup, y=!!sym(input$variablesOne), fill=subgroup)) + geom_boxplot() + theme(axis.title.x=element_blank(), legend.position = "none")
+          
+        p2 <- ggplot(data, aes(x=subgroup, y=!!sym(input$variablesTwo), fill=subgroup)) + geom_boxplot() + theme( axis.title.x=element_blank())
+        grid.arrange(p1, p2, nrow = 1, widths = c(1, 1.3))
         par(mfrow=c(1,1))
 
       }, width = 1000, height = 700)
       
-      #show dataset
-      output$distData <- renderTable(
-        data %>%
-          dplyr::select(unlist(input$variables, use.names = FALSE))
-      )
+      # #show dataset
+      # output$distData <- renderTable(
+      #   data %>%
+      #     dplyr::select(unlist(input$variables, use.names = FALSE))
+      # )
 }
 
 # Run the application 
