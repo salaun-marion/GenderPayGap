@@ -31,18 +31,27 @@ colnames(data) <- c("region","year","GDP","UrbanPopulation","Industry","Business
                     "Administrative","PublicAdministration","Education",
                     "Health","Arts","Other","Average")
 
+## -- FOR THE MAP
+
 worldmap <- map_data("world")
 mapdata <- left_join(data, worldmap, by="region", relationship = "many-to-many")
 
 ## -- FOR THE MATRIX & LM
 
-pay_gap_Europe <- read.csv("pay_gap_Europe.csv")
 #create a new column with the country
-pay_gap_Europe$Country_factor <- as.factor(pay_gap_Europe$Country)
+data$Country_factor <- as.factor(data$region)
 #give to each country a qualitative value
-pay_gap_Europe$Country_numeric <- as.numeric(pay_gap_Europe$Country_factor) - 1
+data$Country_numeric <- as.numeric(data$Country_factor) - 1
 #remove from the past dataset the qualitative values
-pay_gap<-subset(pay_gap_Europe,select=-c(Country, Country_factor) )
+pay_gap<-subset(data,select=-c(region, Country_factor))
+
+## -- FOR LINEAR GRAPH
+
+linearPayGap<-subset(data,select=-c(Average,Country_factor,Country_numeric))
+
+## -- FOR BOX PLOT
+
+boxData <- subset(data,select=-c(Country_factor,Country_numeric))
 
 ## -- SET THE DIFFERENT VECTORS & LIST 
 
@@ -53,18 +62,15 @@ southern_europe <- c("Cyprus", "Greece", "Italy", "Malta", "Portugal", "Spain")
 
 allcolumnNames = c(colnames(data))
 selectedcolumn = c("GDP","Industry","Business","Mining", 
-                   "Manufacturing","Electricity supply","Water supply","Construction",
+                   "Manufacturing","ElectricitySupply","WaterSupply","Construction",
                    "Retail","Transportation","Accommodation","Information",
-                   "Financial","Real estate","Science",
-                   "Administrative","Public administration","Education",
+                   "Financial","RealEstate","Science",
+                   "Administrative","PublicAdministration","Education",
                    "Health","Arts","Other")
 
 selectedcountries = c(unique(data$region))
 
-variables<-pay_gap[,c("GDP","Industry","Mining","Business","Manufacturing" ,"Electricity_supply",    
-                      "Water_supply","Construction","Retail.trade","Transportation" ,"Accommodation","Information",
-                      "Financial","Real.estate","Professional_scientific","Administrative","Public_administration",
-                      "Education","Human_health","Arts","Other")]
+variables<-pay_gap[,selectedcolumn]
 
 # Header ----
 header <- dashboardHeader(title="Gender Pay Gap")
@@ -95,12 +101,12 @@ sidebar <- dashboardSidebar(
   ),
   conditionalPanel(condition="input.tabselected==4",
                    selectInput("variablesOne","Select variables:",
-                               choices = allcolumnNames,
+                               choices = c(selectedcolumn,"Average"),
                                selected = c("Average"),
                                
                    ),
                    selectInput("variablesTwo","Select variables:",
-                               choices = allcolumnNames,
+                               choices = c(selectedcolumn,"Average"),
                                selected = c("UrbanPopulation"),
                                
                    ),
@@ -250,7 +256,7 @@ server <- function(input, output, session) {
   output$viewCountries1 <- renderTable({
     data1 <- subset(mapdata,year == input$yearCursor)
     data1 <- data1 %>% dplyr::select(region, !!input$jobField)
-    data1<-data1 %>% distinct(.keep_all=TRUE)
+    data1 <- data1 %>% distinct(.keep_all=TRUE)
     
     n=13
     firstTable <- data1[row.names(data1) %in% 1:n, ]
@@ -284,8 +290,8 @@ server <- function(input, output, session) {
     
     countryname <- req(input$country)
     
-    plotLineData <- data %>%
-      pivot_longer(cols = -c("region","year","GDP","UrbanPopulation","Average"), names_to = 'Domain', values_to = 'GPG')
+    plotLineData <- linearPayGap %>%
+      pivot_longer(cols = -c("region","year","GDP","UrbanPopulation"), names_to = 'Domain', values_to = 'GPG')
     
     plotLineData2 <- plotLineData %>%
       mutate(JobSectors = case_when(Domain %in% c('Retail') ~ 'Trade and commerce',
@@ -330,14 +336,12 @@ server <- function(input, output, session) {
             scale=input$norm, # scale allow the normalization
             symm = TRUE)
     # legend(x = "bottomright", c("Max", "Mid","Min"), fill = c("green4","White","deeppink"))
-    
   })
   
   #Boxplot
   output$boxPlot <- renderPlot({
     
-    # dataAvg <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
-    data <- transform(data, subgroup = case_when(
+    boxData <- transform(boxData, subgroup = case_when(
       region %in% central_europe ~ "Central Europe",
       region %in% northern_europe ~ "Northern Europe",
       region %in% eastern_europe ~ "Eastern Europe",
@@ -345,11 +349,11 @@ server <- function(input, output, session) {
       TRUE ~ "Other"
     ))
     
-    p1 <- ggplot(data, aes(x=subgroup, y=!!sym(input$variablesOne), fill=subgroup)) + 
+    p1 <- ggplot(boxData, aes(x=subgroup, y=!!sym(input$variablesOne), fill=subgroup)) + 
       geom_boxplot() + 
       theme(axis.title.x=element_blank(),axis.text.x = element_blank(), legend.position = "none")
     
-    p2 <- ggplot(data, aes(x=subgroup, y=!!sym(input$variablesTwo), fill=subgroup)) + 
+    p2 <- ggplot(boxData, aes(x=subgroup, y=!!sym(input$variablesTwo), fill=subgroup)) + 
       geom_boxplot() + 
       theme(axis.title.x=element_blank(),axis.text.x = element_blank())
     
@@ -357,8 +361,9 @@ server <- function(input, output, session) {
     par(mfrow=c(1,1))
   })
   
+  #reactive function with LM
   scaled_variables <- as.data.frame(scale(variables))
-  data <- cbind(scaled_variables, Year = pay_gap$Year, Urban_population=pay_gap$Urban_population,Country_numeric=pay_gap$Country_numeric)
+  data <- cbind(scaled_variables, Year = pay_gap$year, Urban_population=pay_gap$UrbanPopulation,Country_numeric=pay_gap$Country_numeric)
   data <- na.omit(data)
   lm1 <- reactive({lm(reformulate(input$predicator,input$reference), data = data)})
   
