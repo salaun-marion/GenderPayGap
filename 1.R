@@ -1,14 +1,14 @@
 update.packages()
-library(MASS)
-library(ISLR)
+##library(MASS)
+##library(ISLR)
 library(tidyverse)
 library(ggplot2)
 
 
 #Let' have a look at the correlations
-pay_gap_Europe <- read.csv("pay_gap_Europe.csv")
+pay_gap_Europe <- read.csv('pay_gap_Europe.csv')
 
-#create a new column with the country
+getwd()#create a new column with the country
 pay_gap_Europe$Country_factor <- as.factor(pay_gap_Europe$Country)
 #give to each country a qualitative value
 pay_gap_Europe$Country_numeric <- as.numeric(pay_gap_Europe$Country_factor) - 1

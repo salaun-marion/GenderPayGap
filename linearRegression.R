@@ -1,6 +1,6 @@
 update.packages()
-library(MASS)
-library(ISLR)
+##library(MASS)
+##library(ISLR)
 library(tidyverse)
 library(ggplot2)
 
@@ -37,7 +37,7 @@ heatmap(x=pay_gap.corr,col = palette, symm = TRUE)
 #matrixInf
 
 
-#we concentrate on the "GDP"  as output for the regression
+#we concentrate on the "Information"  as output for the regression
 correlation<-pay_gap.corr[,'Information']
 col<-colnames(pay_gap.corr)
 inf.corr<-tibble(col, correlation)
@@ -54,7 +54,7 @@ summary(lm1)
 
 par(mar=c(1, 1, 1, 1)); par(mfrow=c(2,2)); plot(lm1); par(mfrow=c(1,1));
 
-ggplot() + geom_point(data=pay_gap, aes(x=Manufacturing, y=GDP)) +#coord_cartesian(ylim=c(0,35))+
+ggplot() + geom_point(data=pay_gap, aes(x=Manufacturing, y=Information)) +#coord_cartesian(ylim=c(0,35))+
   geom_abline(intercept=coef(lm1)[1], slope=coef(lm1)[2], size=2, color="red", alpha=0.5)
 ##
 
