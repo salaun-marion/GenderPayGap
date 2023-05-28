@@ -18,6 +18,7 @@ library(RColorBrewer)
 library(hexbin)
 library(bslib) # for convenient window arrangement in plotting
 library(gridExtra)
+library(shinyjs)
 
 #Load datasets
 
@@ -62,6 +63,13 @@ header <- dashboardHeader(title="Gender Pay Gap")
 
 sidebar <- dashboardSidebar(
   conditionalPanel(condition="input.tabselected==1",
+                   h4(HTML("Group ID 6"),style="text-align:right"),
+                   h5(HTML("<br>Presentation by 
+                            <br>Marion Salaün,
+                            <br>Ainhoa Unanue Bereciartu
+                            <br>& Cheung Sum Yuet"),style="text-align:right" )
+  ),
+  conditionalPanel(condition="input.tabselected==2",
                    sliderInput("yearCursor", "Years :",
                                min = 2010, max = 2021,
                                value = 2010, step = 2, sep = "",
@@ -69,46 +77,65 @@ sidebar <- dashboardSidebar(
                    selectInput("jobField", "Choose the Job field :",
                                choices=selectedcolumn),
   ),
-  conditionalPanel(condition="input.tabselected==2",
+  conditionalPanel(condition="input.tabselected==3",
                    checkboxGroupInput("country","Select Country:",
                                       choices = selectedcountries,
-                                      selected = c("France"),),
-                   actionLink("selectall","Select All"),
-                   # actionLink("reset","Reset") 
-  ),
-  conditionalPanel(condition="input.tabselected==3",
-                   selectInput("variables","Select variables:",
-                                      choices = allcolumnNames,
-                                      selected = c("region"),
-                                      multiple=TRUE,
-                   ),
+                                      selected = c("France","Spain")),
+                   actionLink("selectall","Select All or Reset"),
   ),
   conditionalPanel(condition="input.tabselected==4",
                    selectInput("variablesOne","Select variables:",
                                choices = allcolumnNames,
                                selected = c("Average"),
-                            
+                               
                    ),
                    selectInput("variablesTwo","Select variables:",
                                choices = allcolumnNames,
                                selected = c("UrbanPopulation"),
-                             
+                               
+                   ),
+  ),
+  conditionalPanel(condition="input.tabselected==5",
+                   selectInput("variables","Select variables:",
+                                      choices = allcolumnNames,
+                                      selected = c("region"),
+                                      multiple=TRUE,
                    ),
   )
-  # conditionalPanel(condition="input.tabselected==5",
-  #                  selectInput("variables","Select variables:",
-  #                              choices = allcolumnNames,
-  #                              selected = c("region"),
-  #                              multiple=TRUE,
-  #                  ),
-  # )
 )
 
 # Body ----
 body <- dashboardBody(
   mainPanel(
     tabsetPanel(
-      tabPanel("Map", value=1,
+      tabPanel("About", value=1,
+                   fluidRow(
+                     box(width = 12, height = 600,
+                         h1("First ..."),
+                         div("As young women and future professionals in IT (for some of us reconverted), 
+                             we wanted to see if we can be as paid as much as our future male coworkers."),
+                         h2("About our database "),
+                         div(HTML("These datas are from the European institution named <b>Eurostat</b>. The data
+                             were collected <b>from 2010 until 2021</b> included. <b>27 European countries</b> were selected.
+                             Only the employees working for a company with more than 10 employees were chosen.")),
+                         h2("About the Gender Pay Gap "),
+                         div(HTML("<b>Gender Pay Gap (GPG)</b> is computed as : 
+                              <em>(Men's Average Earnings - Women's Average Earnings) / Men's Average Earnings</em> 
+                              which means if GPG = 0.20, women earn 20% less than men in the same company.")),
+                         h2("Our questions"),
+                         div(HTML("<ul>
+                                  <li>What was the trend in the gender pay gap between female and male workers from 2010 to 2021?</li>
+                                  <li>Is there significant variation in the gender pay gap across European countries?</li>
+                                  <li>Are there variations in the gender pay gap across different professional fields?</li>
+                                  <li>Is there a correlation between urbanization and the gender pay gap?</li>
+                                  <li>Is there a correlation between GDP and the gender pay gap?</li>
+                                  <li>Do we have a situation like ‘In the southern European countries, the gap is bigger than in the northern countries.’?</li>
+                                  </ul>"))
+    
+                         )
+                   )
+               ),
+      tabPanel("Map", value=2,
                    fluidRow(
                      box(title = "Map of Europe", height = 500,width = 6, plotOutput("distPlot")),
                      box(width = 3, height = 500, tableOutput("viewCountries1")),
@@ -118,11 +145,47 @@ body <- dashboardBody(
                        which means if GPG = 0.20, women earn 20% less than men in the same company."),style="text-align:center")
                    )
                ),
-      tabPanel("Plot", value=2,
-                  plotOutput("linePlot"),
+      tabPanel("Line Plot", value=3,
+                fluidRow(
+                  box(title = "Business line", width = 12, plotOutput("linePlot")),
+                  box(title = "Information", width = 12,
+                       div(HTML("Each <b>business line </b> was regrouped :
+                            <ul>
+                            <li>Trade and commerce for Retail, </li>
+                            <li>Manufacturing and production for manufacturing, </li>
+                            <li>Primary Industry and Infrastructure for Electricity Supply, Water Supply, Mining, Construction </li>
+                            <li>Service and information for Business,Transportation, Accommodation, Information, Financial, Real Estate, Science, Administrative </li>
+                            <li>Public sector and social services for Health, Arts, Others, Education, Public Administration </li> 
+                            </ul>
+                              "))
+                      )
+                )
+            
               ),
-      tabPanel("Correlation", value=3, plotOutput("corrMatrix")),
-      tabPanel("Box plot", value=4,plotOutput("boxPlot")),
+      tabPanel("Box plot", value=4,
+                 fluidRow(
+                   box(title = "Urban population vs ... ", width = 12, plotOutput("boxPlot")),
+                   box(title = "Information", width = 12,
+                       div(HTML("Each <b>country </b> was regrouped as :
+                              <ul>
+                              <li>Central Europe  : France, Luxembourg , Netherlands, Belgium, Germany, Austria, Czech Republic, Hungary, Poland, Slovakia, Slovenia</li>
+                              <li>Northern Europe : Denmark, Estonia, Finland, Iceland, Latvia, Lithuania, Norway, Sweden</li>
+                              <li>Southern Europe : Bulgaria, Croatia, Romania</li>
+                              <li>Eastern Europe : Cyprus, Greece, Italy, Malta, Portugal, Spain</li>
+                              <li>Other : Switzerland </li>
+                              </ul>
+                                ")))
+                  )
+  
+               ),
+      
+      tabPanel("Correlation", value=5, 
+                 fluidRow(
+                   box(title = "Correlation Matrix ", width = 12, plotOutput("corrMatrix")),
+                   box(title = "Information", width = 12,
+                       div(HTML()))
+                 )
+               ),
       # tabPanel("Data", value=5,
       #          tableOutput("distData")),
       id = "tabselected"
@@ -186,21 +249,23 @@ server <- function(input, output, session) {
         head(secondtTable, n)
       })
       
-      #Line plot
-      output$linePlot <- renderPlot({
-        
-        countryname <- req(input$country)
-        
-        observe({
-          if(input$selectall == 0){ 
-            return(NULL) 
-          }else{
-            updateCheckboxGroupInput(session,"country","Select Country:",
+      
+      #Create the button to select/deselect all countries
+      observeEvent(input$selectall,{
+          if(input$selectall %% 2 == 1)
+            updateCheckboxGroupInput (session,"country","Select Country:",
                                      choices = selectedcountries,
                                      selected = selectedcountries)
-          }
-       
-        })
+          else
+            updateCheckboxGroupInput (session,"country","Select Country:",
+                                      choices = selectedcountries,
+                                      )
+       })
+      
+      #Line plot
+      output$linePlot <- renderPlot({
+
+        countryname <- req(input$country)
         
         plotLineData <- data %>%
           pivot_longer(cols = -c("region","year","GDP","UrbanPopulation","Average"), names_to = 'Domain', values_to = 'GPG')
@@ -226,7 +291,7 @@ server <- function(input, output, session) {
           facet_wrap(vars(region), ncol=5) +
           theme_bw()
 
-      },width=900,height=800)
+      })
       
       #Correlation matrix
       output$corrMatrix <- renderPlot({
@@ -246,7 +311,7 @@ server <- function(input, output, session) {
         pay_gap.corr
         
         #Make a graph for the correlation
-        palette <- colorRampPalette(brewer.pal(8, "PuOr"))(25)
+        palette <- colorRampPalette(brewer.pal(8, "PiYG"))(25)
         
         heatmap(x = pay_gap.corr,
                 # Colv = NA,
@@ -256,9 +321,9 @@ server <- function(input, output, session) {
                 labCol = allcolumnNames,
                 labRow = allcolumnNames,
                 col= palette,
-                scale="column", # scale allow the normalization
+                # scale="column", # scale allow the normalization
                 symm = TRUE)
-        legend(x = "bottomright", c("Max", "Mid","Min"), fill = c("Purple","Beige","Brown"))
+        legend(x = "bottomright", c("Max", "Mid","Min"), fill = c("green4","White","deeppink"))
         
       })
       
@@ -274,13 +339,17 @@ server <- function(input, output, session) {
           TRUE ~ "Other"
         ))
 
-        p1 <- ggplot(data, aes(x=subgroup, y=!!sym(input$variablesOne), fill=subgroup)) + geom_boxplot() + theme(axis.title.x=element_blank(), legend.position = "none")
-          
-        p2 <- ggplot(data, aes(x=subgroup, y=!!sym(input$variablesTwo), fill=subgroup)) + geom_boxplot() + theme( axis.title.x=element_blank())
-        grid.arrange(p1, p2, nrow = 1, widths = c(1, 1.3))
+        p1 <- ggplot(data, aes(x=subgroup, y=!!sym(input$variablesOne), fill=subgroup)) + 
+          geom_boxplot() + 
+          theme(axis.title.x=element_blank(),axis.text.x = element_blank(), legend.position = "none")
+        
+        p2 <- ggplot(data, aes(x=subgroup, y=!!sym(input$variablesTwo), fill=subgroup)) + 
+          geom_boxplot() + 
+          theme(axis.title.x=element_blank(),axis.text.x = element_blank())
+        
+        grid.arrange(p1, p2, nrow = 1, widths = c(0.5, 0.8))
         par(mfrow=c(1,1))
-
-      }, width = 1000, height = 700)
+      })
       
       # #show dataset
       # output$distData <- renderTable(
