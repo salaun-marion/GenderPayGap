@@ -18,7 +18,7 @@ library(RColorBrewer)
 library(hexbin)
 library(bslib) # for convenient window arrangement in plotting
 library(gridExtra)
-library(shinyjs)
+library(readr)
 
 #Load datasets
 
@@ -99,6 +99,15 @@ sidebar <- dashboardSidebar(
                    selectInput("norm","Normalisation:",
                                choices = c("row","column","none"),
                                selected = c("none"),
+                   ),
+                   selectInput("reference","Select the reference variables:",
+                               choices = allcolumnNames,
+                               selected = c("Information"),
+                   ),
+                   selectInput("predicator","Select predicators:",
+                               choices = allcolumnNames,
+                               selected = c("Year","GDP","Urban_Population"),
+                               multiple = TRUE,
                    ),
   )
 )
@@ -181,8 +190,7 @@ body <- dashboardBody(
       tabPanel("Correlation", value=5, 
                fluidRow(
                  box(title = "Correlation matrix ", width = 12, plotOutput("corrMatrix")),
-                 box(title = "Information", width = 12,
-                     div(HTML("blabla")))
+                 box(title = "Information", width = 12,verbatimTextOutput("summaryModel")),
                )
       ),
       # tabPanel("Data", value=5,
@@ -349,6 +357,29 @@ server <- function(input, output, session) {
     grid.arrange(p1, p2, nrow = 1, widths = c(0.5, 0.8))
     par(mfrow=c(1,1))
   })
+  
+  
+  pay_gap_Europe <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
+  pay_gap_Europe$Country_factor <- as.factor(pay_gap_Europe$Country)
+  pay_gap_Europe$Country_numeric <- as.numeric(pay_gap_Europe$Country_factor) - 1
+  pay_gap<-subset(pay_gap_Europe,select=-c(Country,Average) )
+  variables<-pay_gap[,c("GDP","Industry","Mining","Business","Manufacturing" ,"Electricity_supply",    
+                        "Water_supply","Construction","Retail trade","Transportation" ,"Accommodation","Information",
+                        "Financial","Real estate","Professional_scientific","Administrative","Public_administration",
+                        "Education","Human_health","Arts","Other")]
+  scaled_variables <- as.data.frame(scale(variables))
+  data <- cbind(scaled_variables, Year = pay_gap$Year, Urban_population=pay_gap$Urban_population,Country_numeric=pay_gap$Country_numeric)
+  data <- na.omit(data)
+  lm1 <- reactive({lm(reformulate(input$predicator,input$reference), data = data)})
+  
+  #Modelling
+  output$summaryModel <- renderPrint({
+    
+    #summary
+    summary(lm1())
+    
+  })
+  
   
   # #show dataset
   # output$distData <- renderTable(

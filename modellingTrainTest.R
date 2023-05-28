@@ -1,7 +1,9 @@
 
 library(readr)
-head(data)
-show(data)
+# head(data)
+# show(data)
+
+pay_gap_Europe <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
 
 #create a new column with the country
 pay_gap_Europe$Country_factor <- as.factor(pay_gap_Europe$Country)
@@ -10,12 +12,12 @@ pay_gap_Europe$Country_numeric <- as.numeric(pay_gap_Europe$Country_factor) - 1
 pay_gap_Europe
 
 #remove from the past dataset the qualitative values
-pay_gap<-subset(pay_gap_Europe,select=-c(Country, Country_factor) )
+pay_gap<-subset(pay_gap_Europe,select=-c(Country,Average) )
 pay_gap
 
 variables<-pay_gap[,c("GDP","Industry","Mining","Business","Manufacturing" ,"Electricity_supply",    
-                      "Water_supply","Construction","Retail.trade","Transportation" ,"Accommodation","Information",
-                      "Financial","Real.estate","Professional_scientific","Administrative","Public_administration",
+                      "Water_supply","Construction","Retail trade","Transportation" ,"Accommodation","Information",
+                      "Financial","Real estate","Professional_scientific","Administrative","Public_administration",
                       "Education","Human_health","Arts","Other")]
 #scale variables
 scaled_variables <- as.data.frame(scale(variables))
@@ -43,10 +45,25 @@ train_indices <- sample(1:n, train_size)
 # Split the data into training and testing sets
 train_data <- data[train_indices, ]
 test_data <- data[-train_indices, ]
+
+# removePred <- c("GDP","Industry","Mining","Business","Manufacturing" ,"Electricity_supply",    
+#                   "Water_supply","Construction","Retail trade","Transportation" ,"Accommodation","Information",
+#                   "Financial","Real estate","Professional_scientific","Administrative","Public_administration",
+#                   "Education","Human_health","Arts","Other")
+# result <- paste(removePred, collapse = "-")
+
+
 lm.red3 <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-
-                Country_numeric-Business-Mining-Retail.trade-Real.estate-
-                Public_administration-Electricity_supply-Water_supply-Education,data=data)
+                Country_numeric-Business-Mining-`Retail trade`-`Real estate`-
+                Public_administration-Electricity_supply-Water_supply-Education-Arts,data=data)
+
+# result <- cat(result)
+
+# lm.red4 <- lm(reformulate(Information, Contruction), data = data)
 summary(lm.red3)
+# summary(lm.red4)
+
+
 lm.red <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-Country_numeric,data=pay_gap)
 test_predictions <- predict(lm.red3, newdata = test_data)
 test_predictions2 <- predict(lm.red, newdata = test_data)
