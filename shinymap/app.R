@@ -32,10 +32,19 @@ colnames(data) <- c("region","year","GDP","UrbanPopulation","Industry","Business
                     "Health","Arts","Other","Average")
 
 worldmap <- map_data("world")
-#glimpse(data)
 mapdata <- left_join(data, worldmap, by="region", relationship = "many-to-many")
 
-## -- SET THE DIFFERENT VARIABLES
+## -- FOR THE MATRIX & LM
+
+pay_gap_Europe <- read.csv("pay_gap_Europe.csv")
+#create a new column with the country
+pay_gap_Europe$Country_factor <- as.factor(pay_gap_Europe$Country)
+#give to each country a qualitative value
+pay_gap_Europe$Country_numeric <- as.numeric(pay_gap_Europe$Country_factor) - 1
+#remove from the past dataset the qualitative values
+pay_gap<-subset(pay_gap_Europe,select=-c(Country, Country_factor) )
+
+## -- SET THE DIFFERENT VECTORS & LIST 
 
 central_europe <- c("France","Luxembourg","Netherlands","Belgium","Germany", "Austria", "Czech Republic", "Hungary", "Poland", "Slovakia", "Slovenia")
 northern_europe <- c("Denmark", "Estonia", "Finland", "Iceland", "Latvia", "Lithuania", "Norway", "Sweden")
@@ -52,9 +61,10 @@ selectedcolumn = c("GDP","Industry","Business","Mining",
 
 selectedcountries = c(unique(data$region))
 
-## -- FOR THE MATRIX
-
-pay_gap_Europe <- read.csv("pay_gap_Europe.csv")
+variables<-pay_gap[,c("GDP","Industry","Mining","Business","Manufacturing" ,"Electricity_supply",    
+                      "Water_supply","Construction","Retail.trade","Transportation" ,"Accommodation","Information",
+                      "Financial","Real.estate","Professional_scientific","Administrative","Public_administration",
+                      "Education","Human_health","Arts","Other")]
 
 # Header ----
 header <- dashboardHeader(title="Gender Pay Gap")
@@ -303,19 +313,8 @@ server <- function(input, output, session) {
   #Correlation matrix
   output$corrMatrix <- renderPlot({
     
-    #create a new column with the country
-    pay_gap_Europe$Country_factor <- as.factor(pay_gap_Europe$Country)
-    #give to each country a qualitative value
-    pay_gap_Europe$Country_numeric <- as.numeric(pay_gap_Europe$Country_factor) - 1
-    pay_gap_Europe
-    
-    #remove from the past dataset the qualitative values
-    pay_gap<-subset(pay_gap_Europe,select=-c(Country, Country_factor) )
-    pay_gap
-    
     #see the correlation of pay_gap
     pay_gap.corr<-cor(na.omit(pay_gap))
-    pay_gap.corr
     
     #Make a graph for the correlation
     palette <- colorRampPalette(brewer.pal(8, "PiYG"))(25)
@@ -358,34 +357,14 @@ server <- function(input, output, session) {
     par(mfrow=c(1,1))
   })
   
-  
-  pay_gap_Europe <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
-  pay_gap_Europe$Country_factor <- as.factor(pay_gap_Europe$Country)
-  pay_gap_Europe$Country_numeric <- as.numeric(pay_gap_Europe$Country_factor) - 1
-  pay_gap<-subset(pay_gap_Europe,select=-c(Country,Average) )
-  variables<-pay_gap[,c("GDP","Industry","Mining","Business","Manufacturing" ,"Electricity_supply",    
-                        "Water_supply","Construction","Retail trade","Transportation" ,"Accommodation","Information",
-                        "Financial","Real estate","Professional_scientific","Administrative","Public_administration",
-                        "Education","Human_health","Arts","Other")]
   scaled_variables <- as.data.frame(scale(variables))
   data <- cbind(scaled_variables, Year = pay_gap$Year, Urban_population=pay_gap$Urban_population,Country_numeric=pay_gap$Country_numeric)
   data <- na.omit(data)
   lm1 <- reactive({lm(reformulate(input$predicator,input$reference), data = data)})
   
   #Modelling
-  output$summaryModel <- renderPrint({
-    
-    #summary
-    summary(lm1())
-    
-  })
+  output$summaryModel <- renderPrint({summary(lm1())})
   
-  
-  # #show dataset
-  # output$distData <- renderTable(
-  #   data %>%
-  #     dplyr::select(unlist(input$variables, use.names = FALSE))
-  # )
 }
 
 # Run the application 
