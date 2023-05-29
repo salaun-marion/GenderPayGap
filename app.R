@@ -19,6 +19,7 @@ library(hexbin)
 library(bslib) # for convenient window arrangement in plotting
 library(gridExtra)
 library(readr)
+library(ERSA)
 
 #Load datasets
 
@@ -209,6 +210,7 @@ body <- dashboardBody(
                fluidRow(
                  box(title = "Correlation matrix ", width = 12, plotOutput("corrMatrix")),
                  box(title = "Information", width = 12,verbatimTextOutput("summaryModel")),
+                 box(title = "T stat", width = 12,plotOutput("barplot") )
                )
       ),
       # tabPanel("Data", value=5,
@@ -377,6 +379,18 @@ server <- function(input, output, session) {
   output$summaryModel <- renderPrint({
     summary(lm1())
     })
+  
+  output$barplot <- renderPlot({
+    # plotAnovaStats(
+    #   lm1(),
+    #   barcols = NULL,
+    #   preds = NULL,
+    #   alpha = 0.05,
+    #   type = "SS",
+    #   width = 0.3
+    # )
+    plottStats(lm1(), barcols = NULL, preds = NULL, alpha = 0.05, width = 0.3)
+  })
   
 }
 
