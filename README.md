@@ -1,9 +1,19 @@
-# GenderPayGap
+# GenderPayGap Shiny Application
+Made by Marion, Ainhoa and Jenny :)
 
-Here I will try to put all the info about our project 😉 So check this README file regularly ! You can also update it with <code>markdown</code>.
 
-## Important links for the project
+*Note : you can open this README into a markdown reader to get a better visualisation*
 
-📝 **Jamboard** to put the ideas : https://jamboard.google.com/d/1GBV7s59vDssh45b6817W1u1oOgsXIpzDuiVXgcNwClk/viewer?f=0
+Welcome to our Shiny Application project about the Gender Pay Gap.
 
-👩🏼‍💻 How to **clone the repository** (but you have a lot of other tutorials) : https://www.youtube.com/watch?v=NInwldFZgwA
+## Information
+
+Few information about how the directory works :
+
+-  `app.R`, `GenderPayGap.RProj` : don't touch to these files, they are critical for the good work of the project
+-  pay_gap_Europe.csv : this is our dataset, you don't need to edit it to use the application
+-  `Extra Code` directory : you will find our draft file for coding this application (like moddeling, linear correlation, train/trend try, etc ...) which are relevant according to us
+
+## How to launch the application ?
+
+You can open this directory on R Studio and then from the `app.R` file you have just to click on `Run App` in the right corner of the working panel. Then, enjoy !

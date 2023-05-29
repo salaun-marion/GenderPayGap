@@ -6,6 +6,11 @@
 #
 #    http://shiny.rstudio.com/
 #
+
+if(!require('pacman'))install.packages('pacman')
+pacman::p_load(shiny,dplyr,tidyverse,ggplot2,maps,rworldmap,shinydashboard,
+               reshape2,RColorBrewer,hexbin,bslib,gridExtra,readr,ERSA)
+
 library(shiny)
 library(dplyr)
 library(tidyverse)
