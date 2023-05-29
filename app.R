@@ -24,6 +24,9 @@ library(readr)
 
 ## -- FOR THE MAP
 data <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
+
+#create an average column
+data$Average <- rowMeans(data[,4:24], na.rm=T)
 colnames(data) <- c("region","year","GDP","UrbanPopulation","Industry","Business","Mining", 
                     "Manufacturing","ElectricitySupply","WaterSupply","Construction",
                     "Retail","Transportation","Accommodation","Information",
@@ -122,7 +125,8 @@ sidebar <- dashboardSidebar(
                    ),
                    selectInput("predicator","Select predicators:",
                                choices = allcolumnNames,
-                               selected = c("Year","GDP","Urban_Population"),
+                               selected = c("year","GDP","UrbanPopulation", "Manufacturing","Construction",
+                                            "Transportation","Financial","Science","Administrative","Arts","Average"),
                                multiple = TRUE,
                    ),
   )
@@ -190,13 +194,12 @@ body <- dashboardBody(
                fluidRow(
                  box(title = "Urban population vs ... ", width = 12, plotOutput("boxPlot")),
                  box(title = "Information", width = 12,
-                     div(HTML("Each <b>country </b> was regrouped as :
+                     div(HTML("According to the United Nations Geoscheme of Europe, each <b>country </b> was regrouped as :
                               <ul>
-                              <li>Central Europe  : France, Luxembourg , Netherlands, Belgium, Germany, Austria, Czech Republic, Hungary, Poland, Slovakia, Slovenia</li>
-                              <li>Northern Europe : Denmark, Estonia, Finland, Iceland, Latvia, Lithuania, Norway, Sweden</li>
-                              <li>Southern Europe : Bulgaria, Croatia, Romania</li>
-                              <li>Eastern Europe : Cyprus, Greece, Italy, Malta, Portugal, Spain</li>
-                              <li>Other : Switzerland </li>
+                              <li>Central Europe  : France, Luxembourg , Netherlands, Belgium, Germany, Austria, Switzerland</li>
+                              <li>Northern Europe : Denmark, Estonia, Finland, Latvia, Lithuania, Norway, Sweden</li>
+                              <li>Eastern Europe : Bulgaria, Croatia, Romania, Czech Republic, Hungary, Poland, Slovakia</li>
+                              <li>Southern Europe : Cyprus, Italy, Malta, Portugal, Spain, Slovenia</li>
                               </ul>
                                 ")))
                )
@@ -342,7 +345,7 @@ server <- function(input, output, session) {
   output$boxPlot <- renderPlot({
     
     boxData <- transform(boxData, subgroup = case_when(
-      region %in% central_europe ~ "Western Europe",
+      region %in% western_europe ~ "Western Europe",
       region %in% northern_europe ~ "Northern Europe",
       region %in% eastern_europe ~ "Eastern Europe",
       region %in% southern_europe ~ "Southern Europe",
@@ -359,7 +362,7 @@ server <- function(input, output, session) {
       theme(axis.title.x=element_blank(),axis.text.x = element_blank()) +
       scale_y_continuous(limits = c(0,75))
     
-    grid.arrange(p1, p2, nrow = 1, widths = c(0.5, 0.8))
+    grid.arrange(p1, p2, nrow = 1, widths = c(0.5, 0.7))
     par(mfrow=c(1,1))
   })
   

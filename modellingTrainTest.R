@@ -12,7 +12,7 @@ pay_gap_Europe$Country_numeric <- as.numeric(pay_gap_Europe$Country_factor) - 1
 pay_gap_Europe
 
 #remove from the past dataset the qualitative values
-pay_gap<-subset(pay_gap_Europe,select=-c(Country,Average) )
+pay_gap<-subset(pay_gap_Europe,select=-c(Country,Average,Country_factor) )
 pay_gap
 
 variables<-pay_gap[,c("GDP","Industry","Mining","Business","Manufacturing" ,"Electricity_supply",    
@@ -52,10 +52,10 @@ test_data <- data[-train_indices, ]
 #                   "Education","Human_health","Arts","Other")
 # result <- paste(removePred, collapse = "-")
 
-
 lm.red3 <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-
                 Country_numeric-Business-Mining-`Retail trade`-`Real estate`-
-                Public_administration-Electricity_supply-Water_supply-Education-Arts,data=data)
+                Public_administration-Electricity_supply-Water_supply-Education,data=pay_gap)
+
 
 # result <- cat(result)
 
