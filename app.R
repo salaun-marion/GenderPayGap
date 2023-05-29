@@ -24,6 +24,7 @@ library(readr)
 
 ## -- FOR THE MAP
 data <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
+RoughallcolumnNames = c(colnames(data))
 
 #create an average column
 data$Average <- rowMeans(data[,4:24], na.rm=T)
@@ -46,7 +47,7 @@ data$Country_factor <- as.factor(data$region)
 #give to each country a qualitative value
 data$Country_numeric <- as.numeric(data$Country_factor) - 1
 #remove from the past dataset the qualitative values
-pay_gap<-subset(data,select=-c(region, Country_factor))
+pay_gap<-subset(data,select=-c(region,Average,Country_factor))
 
 ## -- FOR LINEAR GRAPH
 
@@ -73,7 +74,6 @@ selectedcolumn = c("GDP","Industry","Business","Mining",
 
 selectedcountries = c(unique(data$region))
 
-variables<-pay_gap[,c(selectedcolumn,"Average")]
 
 # Header ----
 header <- dashboardHeader(title="Gender Pay Gap")
@@ -106,12 +106,10 @@ sidebar <- dashboardSidebar(
                    selectInput("variablesOne","Select variables:",
                                choices = c(selectedcolumn,"Average","UrbanPopulation"),
                                selected = c("Average"),
-                               
                    ),
                    selectInput("variablesTwo","Select variables:",
                                choices = c(selectedcolumn,"Average","UrbanPopulation"),
                                selected = c("UrbanPopulation"),
-                               
                    ),
   ),
   conditionalPanel(condition="input.tabselected==5",
@@ -123,10 +121,11 @@ sidebar <- dashboardSidebar(
                                choices = allcolumnNames,
                                selected = c("Information"),
                    ),
-                   selectInput("predicator","Select predicators:",
+                   selectInput("predicator","Predicators to remove:",
                                choices = allcolumnNames,
-                               selected = c("year","GDP","UrbanPopulation", "Manufacturing","Construction",
-                                            "Transportation","Financial","Science","Administrative","Arts","Average"),
+                               selected = c("GDP", "Industry", "Accommodation", "Health", "Other",
+                                            "Country_numeric", "Business", "Mining", "Retail", "RealEstate",
+                                            "PublicAdministration", "ElectricitySupply", "WaterSupply", "Education"),
                                multiple = TRUE,
                    ),
   )
@@ -367,13 +366,17 @@ server <- function(input, output, session) {
   })
   
   #reactive function with LM
-  scaled_variables <- as.data.frame(scale(variables))
-  data <- cbind(scaled_variables,year = pay_gap$year,UrbanPopulation=pay_gap$UrbanPopulation,Country_numeric=pay_gap$Country_numeric)
-  data <- na.omit(data)
-  lm1 <- reactive({lm(reformulate(input$predicator,input$reference), data = data)})
+  lm1 <- reactive({
+    formula <- as.formula(paste( input$reference, "~ . -",
+                                paste(input$predicator,
+                                      collapse = "-")))
+    lm(formula, data = pay_gap)
+  })
   
   #Modelling
-  output$summaryModel <- renderPrint({summary(lm1())})
+  output$summaryModel <- renderPrint({
+    summary(lm1())
+    })
   
 }
 
