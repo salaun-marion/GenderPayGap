@@ -55,10 +55,10 @@ boxData <- subset(data,select=-c(Country_factor,Country_numeric))
 
 ## -- SET THE DIFFERENT VECTORS & LIST 
 
-central_europe <- c("France","Luxembourg","Netherlands","Belgium","Germany", "Austria", "Czech Republic", "Hungary", "Poland", "Slovakia", "Slovenia")
-northern_europe <- c("Denmark", "Estonia", "Finland", "Iceland", "Latvia", "Lithuania", "Norway", "Sweden")
-eastern_europe <- c("Bulgaria", "Croatia", "Romania")
-southern_europe <- c("Cyprus", "Greece", "Italy", "Malta", "Portugal", "Spain")
+western_europe <- c("France","Luxembourg","Netherlands","Belgium","Germany", "Austria","Switzerland")
+northern_europe <- c("Denmark", "Estonia", "Finland", "Latvia", "Lithuania", "Norway", "Sweden")
+eastern_europe <- c("Bulgaria","Romania", "Czech Republic", "Hungary", "Poland", "Slovakia")
+southern_europe <- c("Cyprus", "Italy", "Malta", "Portugal", "Spain", "Slovenia", "Croatia")
 
 allcolumnNames = c(colnames(data))
 selectedcolumn = c("GDP","Industry","Business","Mining", 
@@ -70,7 +70,7 @@ selectedcolumn = c("GDP","Industry","Business","Mining",
 
 selectedcountries = c(unique(data$region))
 
-variables<-pay_gap[,selectedcolumn]
+variables<-pay_gap[,c(selectedcolumn,"Average")]
 
 # Header ----
 header <- dashboardHeader(title="Gender Pay Gap")
@@ -101,12 +101,12 @@ sidebar <- dashboardSidebar(
   ),
   conditionalPanel(condition="input.tabselected==4",
                    selectInput("variablesOne","Select variables:",
-                               choices = c(selectedcolumn,"Average"),
+                               choices = c(selectedcolumn,"Average","UrbanPopulation"),
                                selected = c("Average"),
                                
                    ),
                    selectInput("variablesTwo","Select variables:",
-                               choices = c(selectedcolumn,"Average"),
+                               choices = c(selectedcolumn,"Average","UrbanPopulation"),
                                selected = c("UrbanPopulation"),
                                
                    ),
@@ -342,7 +342,7 @@ server <- function(input, output, session) {
   output$boxPlot <- renderPlot({
     
     boxData <- transform(boxData, subgroup = case_when(
-      region %in% central_europe ~ "Central Europe",
+      region %in% central_europe ~ "Western Europe",
       region %in% northern_europe ~ "Northern Europe",
       region %in% eastern_europe ~ "Eastern Europe",
       region %in% southern_europe ~ "Southern Europe",
@@ -351,11 +351,13 @@ server <- function(input, output, session) {
     
     p1 <- ggplot(boxData, aes(x=subgroup, y=!!sym(input$variablesOne), fill=subgroup)) + 
       geom_boxplot() + 
-      theme(axis.title.x=element_blank(),axis.text.x = element_blank(), legend.position = "none")
+      theme(axis.title.x=element_blank(),axis.text.x = element_blank(), legend.position = "none") +
+      scale_y_continuous(limits = c(0,75))
     
     p2 <- ggplot(boxData, aes(x=subgroup, y=!!sym(input$variablesTwo), fill=subgroup)) + 
       geom_boxplot() + 
-      theme(axis.title.x=element_blank(),axis.text.x = element_blank())
+      theme(axis.title.x=element_blank(),axis.text.x = element_blank()) +
+      scale_y_continuous(limits = c(0,75))
     
     grid.arrange(p1, p2, nrow = 1, widths = c(0.5, 0.8))
     par(mfrow=c(1,1))
@@ -363,7 +365,7 @@ server <- function(input, output, session) {
   
   #reactive function with LM
   scaled_variables <- as.data.frame(scale(variables))
-  data <- cbind(scaled_variables, Year = pay_gap$year, Urban_population=pay_gap$UrbanPopulation,Country_numeric=pay_gap$Country_numeric)
+  data <- cbind(scaled_variables,year = pay_gap$year,UrbanPopulation=pay_gap$UrbanPopulation,Country_numeric=pay_gap$Country_numeric)
   data <- na.omit(data)
   lm1 <- reactive({lm(reformulate(input$predicator,input$reference), data = data)})
   
