@@ -1,5 +1,6 @@
 
 library(readr)
+library(ggplot2)
 head(data)
 show(data)
 
@@ -48,9 +49,6 @@ lm.red3 <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-
                 Public_administration-Electricity_supply-Water_supply-Education,data=data)
 test_predictions <- predict(lm.red3, newdata = test_data)
 
-#red model
-lm.red <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-Country_numeric,data=pay_gap)
-test_predictions2 <- predict(lm.red, newdata = test_data)
 
 
 # Evaluate the model performance of lm.red3
@@ -59,61 +57,26 @@ mse <- mean((test_predictions - test_actuals)^2)
 rmse <- sqrt(mse)
 r_squared <- cor(test_predictions, test_data$Information)^2
 
-# Evaluate the model performance of red model
-test_actuals <- test_data$Information
-mse2 <- mean((test_predictions2 - test_actuals)^2)
-rmse2 <- sqrt(mse2)
-r_squared2 <- cor(test_predictions2, test_data$Information)^2
 
 # Print the evaluation results
 cat("Root Mean Squared Error (RMSE):", rmse, "\n")
-cat("Root Mean Squared Error (RMSE):", rmse2, "\n")
-
 cat("R-squared:", r_squared, "\n")
 
-########################### Erakutsi lagunei
-#split the dataset
-set.seed(123)
-split <- initial_split(data, prop = 0.7)
-train_data <- training(split)
-test_data <- testing(split)
+# Residual Plot
+residuals <- test_actuals - test_predictions
+residual_plot <- ggplot() +
+  geom_point(aes(x = test_predictions, y = residuals), color = "blue") +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  labs(x = "Predicted Values", y = "Residuals") +
+  ggtitle("Residual Plot")
+print(residual_plot)
 
+# Scatter Plot
+scatter_plot <- ggplot() +
+  geom_point(aes(x = test_predictions, y = test_actuals), color = "green") +
+  geom_abline(intercept = 0, slope = 1, color = "blue", linetype = "dashed") +
+  labs(x = "Predicted Values", y = "Actual Values") +
+  ggtitle("Scatter Plot")
+print(scatter_plot)
 
-##scale variables
-scaled_variables
-data <- cbind(scaled_variables, pay_gap = Year)
-data
-pay_gap_complete <- na.omit(data)
-
-
-set.seed(123)     # Set seed for reproducibility
-
-n <- nrow(pay_gap_complete)
-train_indices <- sample(seq_len(n), size = round(0.7 * n), replace = FALSE)
-test_indices <- setdiff(seq_len(n), train_indices)
-
-train_data <- lm(Infromation~.-GDP-Industry-Accommodation-Human_health-Other-
-                                            Country_numeric-Business-Mining-Retail.trade-Real.estate-
-                                            Public_administration-Electricity_supply-Water_supply-Education,data=pay_gap))
-test_data <- original_data[test_indices, ]
-
-train_indices <- sample(seq_len(n), size = round(0.7 * n), replace = FALSE)
-test_indices <- setdiff(seq_len(n), train_indices)
-
-# Step 3: Split the data into training and testing sets
-train_data <- original_data[train_indices, ]
-test_data <- original_data[test_indices, ]
-sample <- sample(c(TRUE, FALSE), nrow(model), replace=TRUE, prob=c(0.7,0.3))
-
-target_variables<-pay_gap[,c("Year","Urban_population","Manufacturing","Construction","Transportation","Financial","Professional_scientific","Administrative","Arts")]
-train_indices <- createDataPartition(pay_gap$target_variables, p = 0.7, list = FALSE)
-
-model <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-
-              Country_numeric-Business-Mining-Retail.trade-Real.estate-
-              Public_administration-Electricity_supply-Water_supply-Education, data = pay_gap)
-sample <- sample(c(TRUE, FALSE), nrow(pay_gap), replace=TRUE, prob=c(0.7,0.3))
-
-predictions <- predict(model, newdata = testing_set)
-train_indices <- createDataPartition(pay_$target_variable, p = 0.7, list = FALSE)
-train_data <- model[sample, ]
-test_data <- model[-sample, ]
+########################### 
