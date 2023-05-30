@@ -1,5 +1,6 @@
 library(tidyverse)
 library(ggplot2)
+library(dplyr)
 
 
 #Let' have a look at the correlations
@@ -15,15 +16,15 @@ glimpse(pay_gap_Europe)
 pay_gap<-subset(pay_gap_Europe,select=-c(Country, Country_factor) )
 glimpse(pay_gap)
 
-#cor(na.omit(pay_gap))
+# cor(na.omit(pay_gap))
 
 #see the correlation of pay_gap
-# pay_gap.corr<-cor(na.omit(pay_gap))
-# pay_gap.corr
+pay_gap.corr<-cor(na.omit(pay_gap))
+pay_gap.corr
 
 #Make a graph for the correlation
-# palette=colorRampPalette(c("green", "white", "red")) (20)
-# heatmap(x=pay_gap.corr,col = palette, symm = TRUE)
+palette=colorRampPalette(c("green", "white", "red")) (20)
+heatmap(x=pay_gap.corr,col = palette, symm = TRUE)
 
 ##EZ ERABILI HAU
 # Subset the correlation matrix to include only 'Year', 'GDP' and 'Urban_population" 'Country' and "GDP in Information, 'Business'"
@@ -34,23 +35,44 @@ glimpse(pay_gap)
 #matrixInf
 
 
-# #we concentrate on the "Information"  as output for the regression
-# correlation<-pay_gap.corr[,'Information']
-# col<-colnames(pay_gap.corr)
-# inf.corr<-tibble(col, correlation)
-# 
-# ggplot(data=inf.corr) + geom_point(aes(x=col, y=correlation)) + geom_hline(yintercept=0, color="blue", size=2)
+#we concentrate on the "Information"  as output for the regression
+correlation<-pay_gap.corr[,'Information']
+col<-colnames(pay_gap.corr)
+inf.corr<-tibble(col, correlation)
+
+ggplot(data=inf.corr) + geom_point(aes(x=col, y=correlation)) + geom_hline(yintercept=0, color="blue", size=2)
+
+##LOLLIPOP VERSION
+
+# Add a column with your condition for the color
+data <- inf.corr %>% 
+  mutate(mycolor = ifelse(correlation>0.5, "type1", "type2"))
+
+# plot
+ggplot(data, aes(x=col, y=correlation),las=2) +
+  geom_segment( aes(x=col, xend=col, y=0, yend=correlation, color=mycolor), size=1.3, alpha=0.9) +
+  theme_light() +
+  theme(
+    legend.position = "none",
+    panel.border = element_blank(),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)
+  ) +
+  xlab("Business Lines") +
+  ylab("Correlation Level") 
 
 
-# 
+
+
+
+#
 # #strating with the Manufacturing correlated variable as predictor
 # lm1 <- lm(Information~Financial,data=pay_gap)
-# 
+#
 # lm1
 # summary(lm1)
-# 
+#
 # par(mar=c(1, 1, 1, 1)); par(mfrow=c(2,2)); plot(lm1); par(mfrow=c(1,1));
-# 
+#
 # ggplot() + geom_point(data=pay_gap, aes(x=Manufacturing, y=Information)) +#coord_cartesian(ylim=c(0,35))+
 #   geom_abline(intercept=coef(lm1)[1], slope=coef(lm1)[2], size=2, color="red", alpha=0.5)
 # ##
@@ -59,12 +81,12 @@ glimpse(pay_gap)
 # idx <- c(0.125, 2.2, 5, 10, 15, 22.75, 30, 37.5, 39.95)
 # pred1 <- predict(lm1,data.frame(Financial=idx), interval="prediction")
 # pred2 <- predict(lm1,data.frame(Financial=idx), interval="confidence")
-# 
+#
 # pred.frame <-  tibble(idx,pred1[,"fit"],pred1[,"lwr"],pred1[,"upr"],pred2[,"lwr"],pred2[,"upr"])
 # colnames(pred.frame) <- c("x","y","y_min","y_max","conf_min","conf_max")
-# 
-# ggplot(data=pay_gap) +  geom_point(data=pay_gap, aes(x=Financial, y=Information)) + 
-#   geom_abline(intercept=coef(lm1)[1], slope=coef(lm1)[2], size=2, color="grey", alpha=0.5) + 
+#
+# ggplot(data=pay_gap) +  geom_point(data=pay_gap, aes(x=Financial, y=Information)) +
+#   geom_abline(intercept=coef(lm1)[1], slope=coef(lm1)[2], size=2, color="grey", alpha=0.5) +
 #   geom_smooth(data=pay_gap, aes(x=Financial, y=Information)) +
 #   geom_point(data=pred.frame, aes(x=x, y=y),color="red", size=2) +
 #   geom_point(data=pred.frame, aes(x=x, y=y_min),color="red", size=4, alpha=0.5, shape =3) +
@@ -75,31 +97,31 @@ glimpse(pay_gap)
 #let's have a look at the variable correlation with GDP, in graphical format
 #ggplot(data=inf.corr) + geom_point(aes(x=col, y=correlation)) + geom_hline(yintercept=0, color="blue", size=2)
 
-# #second model, including also "Manufacturing" 
+# #second model, including also "Manufacturing"
 # lm2 <- lm(Information~Financial+Manufacturing,data=pay_gap)
-# 
+#
 # summary(lm2)
-# 
+#
 # #extending further, including also "Retail.trade"
 # lm3 <- lm(Information~Financial+Manufacturing+Retail.trade,data=pay_gap)
-# 
+#
 # summary(lm3)
-# 
+#
 # # what about using ALL the avaialble variables as predictor set (BAD IDEA, in general)
 # lm.tot <- lm(Information~.,data=pay_gap)
-# 
+#
 # summary(lm.tot)
 
-#let's prune off the one not significant in the model 
+#let's prune off the one not significant in the model
 #  --> WE EXPECT this to be the BEST model possible, from the predictive point of view...
 # lm.red <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-Country_numeric,data=pay_gap)
-# 
+#
 # summary(lm.red)
-# 
+#
 # #we have still non significant variables, so we are going to take off
 # lm.red2 <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-
 #                 Country_numeric-Business-Mining-Retail.trade-Real.estate-Public_administration,data=pay_gap)
-# 
+#
 # summary(lm.red2)
 
 #let's see what happens when we remove other predictors, starting from the less significant ones

@@ -28,7 +28,7 @@ library(ERSA)
 
 #Load datasets
 
-## -- FOR THE MAP
+
 data <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
 RoughallcolumnNames = c(colnames(data))
 
@@ -46,7 +46,7 @@ colnames(data) <- c("region","year","GDP","UrbanPopulation","Industry","Business
 worldmap <- map_data("world")
 mapdata <- left_join(data, worldmap, by="region", relationship = "many-to-many")
 
-## -- FOR THE MATRIX & LM
+## -- FOR THE MATRIX & CORRELATION & MODELLING
 
 #create a new column with the country
 data$Country_factor <- as.factor(data$region)
@@ -55,11 +55,14 @@ data$Country_numeric <- as.numeric(data$Country_factor) - 1
 #remove from the past dataset the qualitative values
 pay_gap<-subset(data,select=-c(region,Average,Country_factor))
 
-## -- FOR LINEAR GRAPH
+pay_gap.corr<-cor(na.omit(pay_gap))
+pay_gap.corr
+
+## -- FOR LINEAR PLOTS
 
 linearPayGap<-subset(data,select=-c(Average,Country_factor,Country_numeric))
 
-## -- FOR BOX PLOT
+## -- FOR BOX PLOTS
 
 boxData <- subset(data,select=-c(Country_factor,Country_numeric))
 
@@ -77,6 +80,7 @@ selectedcolumn = c("GDP","Industry","Business","Mining",
                    "Financial","RealEstate","Science",
                    "Administrative","PublicAdministration","Education",
                    "Health","Arts","Other")
+businessLines = selectedcolumn[!(selectedcolumn=="GDP")]
 
 selectedcountries = c(unique(data$region))
 
@@ -103,26 +107,33 @@ sidebar <- dashboardSidebar(
                                choices=selectedcolumn),
   ),
   conditionalPanel(condition="input.tabselected==3",
+                   selectInput("variablesOne","Select variables:",
+                               choices = c(businessLines,"Average","UrbanPopulation"),
+                               selected = c("Average"),
+                   ),
+                   selectInput("variablesTwo","Select variables:",
+                               choices = c(businessLines,"Average","UrbanPopulation"),
+                               selected = c("UrbanPopulation"),
+                   ),
+  ),
+  conditionalPanel(condition="input.tabselected==4",
                    checkboxGroupInput("country","Select Country:",
                                       choices = selectedcountries,
                                       selected = c("France","Spain")),
                    actionLink("selectall","Select All or Reset"),
-  ),
-  conditionalPanel(condition="input.tabselected==4",
-                   selectInput("variablesOne","Select variables:",
-                               choices = c(selectedcolumn,"Average","UrbanPopulation"),
-                               selected = c("Average"),
-                   ),
-                   selectInput("variablesTwo","Select variables:",
-                               choices = c(selectedcolumn,"Average","UrbanPopulation"),
-                               selected = c("UrbanPopulation"),
-                   ),
   ),
   conditionalPanel(condition="input.tabselected==5",
                    selectInput("norm","Normalisation:",
                                choices = c("row","column","none"),
                                selected = c("none"),
                    ),
+                   selectInput("businessline","Select the reference variable :",
+                               choices = businessLines,
+                               selected = c("Information"),
+                   ),
+                   
+  ),
+  conditionalPanel(condition="input.tabselected==6",
                    selectInput("reference","Select the reference variables:",
                                choices = allcolumnNames,
                                selected = c("Information"),
@@ -178,11 +189,26 @@ body <- dashboardBody(
                        which means if GPG = 0.20, women earn 20% less than men in the same company."),style="text-align:center")
                )
       ),
-      tabPanel("Line Plot", value=3,
+      tabPanel("Box plot", value=3,
+               fluidRow(
+                 box(width = 12, plotOutput("boxPlot")),
+                 box(title = "References", width = 12,
+                     div(HTML("According to the United Nations Geoscheme of Europe, each <b>country </b> was regrouped as :
+                              <ul>
+                              <li>Central Europe  : France, Luxembourg , Netherlands, Belgium, Germany, Austria, Switzerland</li>
+                              <li>Northern Europe : Denmark, Estonia, Finland, Latvia, Lithuania, Norway, Sweden</li>
+                              <li>Eastern Europe : Bulgaria, Croatia, Romania, Czech Republic, Hungary, Poland, Slovakia</li>
+                              <li>Southern Europe : Cyprus, Italy, Malta, Portugal, Spain, Slovenia</li>
+                              </ul>
+                                ")))
+               )
+               
+      ),
+      tabPanel("Line Plot", value=4,
                fluidRow(
                  box(title = "Business line", width = 12, plotOutput("linePlot")),
-                 box(title = "Information", width = 12,
-                     div(HTML("Each <b>business line </b> was regrouped :
+                 box(title = "Description", width = 12,
+                     div(HTML("Each <b>business line </b> was regrouped as:
                             <ul>
                             <li>Trade and commerce for Retail, </li>
                             <li>Manufacturing and production for manufacturing, </li>
@@ -195,31 +221,18 @@ body <- dashboardBody(
                )
                
       ),
-      tabPanel("Box plot", value=4,
-               fluidRow(
-                 box(title = "Urban population vs ... ", width = 12, plotOutput("boxPlot")),
-                 box(title = "Information", width = 12,
-                     div(HTML("According to the United Nations Geoscheme of Europe, each <b>country </b> was regrouped as :
-                              <ul>
-                              <li>Central Europe  : France, Luxembourg , Netherlands, Belgium, Germany, Austria, Switzerland</li>
-                              <li>Northern Europe : Denmark, Estonia, Finland, Latvia, Lithuania, Norway, Sweden</li>
-                              <li>Eastern Europe : Bulgaria, Croatia, Romania, Czech Republic, Hungary, Poland, Slovakia</li>
-                              <li>Southern Europe : Cyprus, Italy, Malta, Portugal, Spain, Slovenia</li>
-                              </ul>
-                                ")))
-               )
-               
-      ),
-      
       tabPanel("Correlation", value=5, 
                fluidRow(
                  box(title = "Correlation matrix ", width = 12, plotOutput("corrMatrix")),
-                 box(title = "Information", width = 12,verbatimTextOutput("summaryModel")),
-                 box(title = "T stat", width = 12,plotOutput("barplot") )
+                 box(title = "Correlation level", width =12, plotOutput('linearLollipop'))
                )
       ),
-      # tabPanel("Data", value=5,
-      #          tableOutput("distData")),
+      tabPanel("Modelling", value=6,
+               fluidRow(
+                 box(title = "Summary", width = 7,verbatimTextOutput("summaryModel")),
+                 box(title = "T Stat Plot", width = 5,plotOutput("Studentbarplot"))
+               )
+      ),
       id = "tabselected"
     )
   ),
@@ -230,6 +243,9 @@ body <- dashboardBody(
                                 /* body */
                                 .content-wrapper, .right-side {
                                 background-color: #ffffff;
+                                }
+                                #summaryModel {
+                                font-size: 9px;
                                 }
                                 
                                 ')))
@@ -344,7 +360,7 @@ server <- function(input, output, session) {
             col= palette,
             scale=input$norm, # scale allow the normalization
             symm = TRUE)
-    # legend(x = "bottomright", c("Max", "Mid","Min"), fill = c("green4","White","deeppink"))
+    legend(x = "bottomright", c("Max", "Mid","Min"), fill = c("green4","White","deeppink"))
   })
   
   #Boxplot
@@ -385,16 +401,34 @@ server <- function(input, output, session) {
     summary(lm1())
     })
   
-  output$barplot <- renderPlot({
-    # plotAnovaStats(
-    #   lm1(),
-    #   barcols = NULL,
-    #   preds = NULL,
-    #   alpha = 0.05,
-    #   type = "SS",
-    #   width = 0.3
-    # )
+  output$Studentbarplot <- renderPlot({
     plottStats(lm1(), barcols = NULL, preds = NULL, alpha = 0.05, width = 0.3)
+  })
+  
+  output$linearLollipop <- renderPlot({
+    correlation<-pay_gap.corr[,input$businessline]
+    col<-colnames(pay_gap.corr)
+    inf.corr<-tibble(col, correlation)
+    
+    #Add a column with your condition for the color : every business line above 0.5 of correlation would be in red
+    data <- inf.corr %>% 
+      mutate(mycolor = ifelse(correlation>0.5, "type1", "type2"))
+    
+    # Lollipop inspiration plot
+    lollipopplot <- ggplot(data, aes(x=col, y=correlation),las=2) +
+      geom_segment( aes(x=col, xend=col, y=0, yend=correlation, color=mycolor), size=1.3, alpha=0.9) +
+      theme_light() +
+      theme(
+        legend.position = "none",
+        panel.border = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)
+      ) +
+      labs(title = (bquote("Correlation level for"~.(input$businessline)~"as reference")))+
+      xlab("Business Lines") +
+      ylab("Correlation Level") 
+    
+    lollipopplot 
+    
   })
   
 }
