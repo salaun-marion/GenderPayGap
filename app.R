@@ -9,7 +9,7 @@
 
 if(!require('pacman'))install.packages('pacman')
 pacman::p_load(shiny,dplyr,tidyverse,ggplot2,maps,rworldmap,shinydashboard,
-               reshape2,RColorBrewer,hexbin,bslib,gridExtra,readr,ERSA)
+               reshape2,RColorBrewer,hexbin,bslib,gridExtra,readr,ERSA,tidymodels)
 
 library(shiny)
 library(dplyr)
@@ -25,12 +25,13 @@ library(bslib) # for convenient window arrangement in plotting
 library(gridExtra)
 library(readr)
 library(ERSA)
+library(tidymodels)
 
 #Load datasets
 
 
 data <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
-RoughallcolumnNames = c(colnames(data))
+RoughallcolumnNames = c(colnames(data)) # ???
 
 #create an average column
 data$Average <- rowMeans(data[,4:24], na.rm=T)
@@ -55,8 +56,48 @@ data$Country_numeric <- as.numeric(data$Country_factor) - 1
 #remove from the past dataset the qualitative values
 pay_gap<-subset(data,select=-c(region,Average,Country_factor))
 
+#set with correlation
 pay_gap.corr<-cor(na.omit(pay_gap))
 pay_gap.corr
+
+## -- MODELLING TRAIN & TREND
+
+variables<-pay_gap[,c("GDP","UrbanPopulation","Industry","Business","Mining", 
+                      "Manufacturing","ElectricitySupply","WaterSupply","Construction",
+                      "Retail","Transportation","Accommodation","Information",
+                      "Financial","RealEstate","Science",
+                      "Administrative","PublicAdministration","Education",
+                      "Health","Arts","Other")]
+
+#scale variables
+scaled_variables <- as.data.frame(scale(variables))
+#create a dataset with the scaled_variables and the value year of pay_gap
+data2 <- cbind(scaled_variables, Year = pay_gap$year, Urban_population=pay_gap$UrbanPopulation,Country_numeric=pay_gap$Country_numeric)
+data2 <- na.omit(data2)
+
+# Set a random seed for reproductibility
+set.seed(123)
+# Determine the number of rows in the dataset
+n <- nrow(data2)
+# Specify the proportion of data to use for training (e.g., 80% for training)
+train_prop <- 0.8
+# Calculate the number of rows for training
+train_size <- round(train_prop * n)
+# Create a vector of indices for random sampling
+train_indices <- sample(1:n, train_size)
+# Split the data into training and testing sets
+train_data <- data2[train_indices, ]
+test_data <- data2[-train_indices, ]
+lm.red3 <- lm(Information~.-GDP-Industry-Accommodation-Health-Other-
+                Country_numeric-Business-Mining-Retail-RealEstate-
+                PublicAdministration-ElectricitySupply-WaterSupply-Education,data=data2)
+test_predictions <- predict(lm.red3, newdata = test_data)
+# Evaluate the model performance of lm.red3
+test_actuals <- test_data$Information
+mse <- mean((test_predictions - test_actuals)^2)
+rmse <- sqrt(mse)
+r_squared <- cor(test_predictions, test_data$Information)^2
+
 
 ## -- FOR LINEAR PLOTS
 
@@ -230,7 +271,8 @@ body <- dashboardBody(
       tabPanel("Modelling", value=6,
                fluidRow(
                  box(title = "Summary", width = 7,verbatimTextOutput("summaryModel")),
-                 box(title = "T Stat Plot", width = 5,plotOutput("Studentbarplot"))
+                 box(title = "T Stat Plot", width = 5,plotOutput("Studentbarplot")),
+                 box(title = "Train and Test", width = 12, verbatimTextOutput("RMSE"),plotOutput("residualPlot"), plotOutput("scatterPlot")),
                )
       ),
       id = "tabselected"
@@ -399,7 +441,7 @@ server <- function(input, output, session) {
   #Modelling
   output$summaryModel <- renderPrint({
     summary(lm1())
-    })
+  })
   
   output$Studentbarplot <- renderPlot({
     plottStats(lm1(), barcols = NULL, preds = NULL, alpha = 0.05, width = 0.3)
@@ -426,12 +468,37 @@ server <- function(input, output, session) {
       labs(title = (bquote("Correlation level for"~.(input$businessline)~"as reference")))+
       xlab("Business Lines") +
       ylab("Correlation Level") 
-    
-    lollipopplot 
-    
+  
+    lollipopplot
+
   })
   
-}
+  output$RMSE <- renderPrint({
+    cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+    cat("R-squared:", r_squared, "\n")
+  })
+  
+  output$scatterPlot <- renderPlot({
+    scatter_plot <- ggplot() +
+      geom_point(aes(x = test_predictions, y = test_actuals), color = "purple") +
+      geom_abline(intercept = 0, slope = 1, color ="royalblue", linetype = "dashed") +
+      labs(x = "Predicted Values", y = "Actual Values") +
+      ggtitle("Scatter Plot")
+    scatter_plot
+
+  })
+
+  output$residualPlot <- renderPlot({
+    residuals <- test_actuals - test_predictions
+    residual_plot <- ggplot() +
+      geom_point(aes(x = test_predictions, y = residuals), color = "royalblue") +
+      geom_hline(yintercept = 0, color = "orange", linetype = "dashed") +
+      labs(x = "Predicted Values", y = "Residuals") +
+      ggtitle("Residual Plot")
+    residual_plot
+
+  })
+  
 
 # Run the application 
 shinyApp(ui = ui, server = server)
