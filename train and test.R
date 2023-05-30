@@ -48,14 +48,27 @@ lm.red3 <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-
                 Public_administration-Electricity_supply-Water_supply-Education,data=data)
 test_predictions <- predict(lm.red3, newdata = test_data)
 
-# Evaluate the model performance
-test_actuals <- test_data$Year
+#red model
+lm.red <- lm(Information~.-GDP-Industry-Accommodation-Human_health-Other-Country_numeric,data=pay_gap)
+test_predictions2 <- predict(lm.red, newdata = test_data)
+
+
+# Evaluate the model performance of lm.red3
+test_actuals <- test_data$Information
 mse <- mean((test_predictions - test_actuals)^2)
 rmse <- sqrt(mse)
 r_squared <- cor(test_predictions, test_data$Information)^2
 
+# Evaluate the model performance of red model
+test_actuals <- test_data$Information
+mse2 <- mean((test_predictions2 - test_actuals)^2)
+rmse2 <- sqrt(mse2)
+r_squared2 <- cor(test_predictions2, test_data$Information)^2
+
 # Print the evaluation results
 cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("Root Mean Squared Error (RMSE):", rmse2, "\n")
+
 cat("R-squared:", r_squared, "\n")
 
 ########################### Erakutsi lagunei
