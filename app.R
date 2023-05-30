@@ -272,7 +272,8 @@ body <- dashboardBody(
                fluidRow(
                  box(title = "Summary", width = 7,verbatimTextOutput("summaryModel")),
                  box(title = "T Stat Plot", width = 5,plotOutput("Studentbarplot")),
-                 box(title = "Train and Test", width = 12, verbatimTextOutput("RMSE"),plotOutput("residualPlot"), plotOutput("scatterPlot")),
+                 box(title = "Train and Test", width = 12, verbatimTextOutput("RMSE"),
+                     plotOutput("residualPlot"),plotOutput("scatterPlot")),
                )
       ),
       id = "tabselected"
@@ -499,6 +500,6 @@ server <- function(input, output, session) {
 
   })
   
-
+}
 # Run the application 
 shinyApp(ui = ui, server = server)
