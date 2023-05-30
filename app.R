@@ -31,7 +31,6 @@ library(tidymodels)
 
 
 data <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
-RoughallcolumnNames = c(colnames(data)) # ???
 
 #create an average column
 data$Average <- rowMeans(data[,4:24], na.rm=T)
@@ -185,7 +184,7 @@ sidebar <- dashboardSidebar(
                                             "Country_numeric", "Business", "Mining", "Retail", "RealEstate",
                                             "PublicAdministration", "ElectricitySupply", "WaterSupply", "Education"),
                                multiple = TRUE,
-                   ),
+                   )
   )
 )
 
@@ -290,6 +289,7 @@ body <- dashboardBody(
                                 #summaryModel {
                                 font-size: 9px;
                                 }
+                                .content-wrapper { overflow: auto; }
                                 
                                 ')))
 )
