@@ -87,10 +87,53 @@ train_indices <- sample(1:n, train_size)
 # Split the data into training and testing sets
 train_data <- data2[train_indices, ]
 test_data <- data2[-train_indices, ]
+
+#MODELING
+#We have created different models to see which can suit the best to predict the Gender Pay Gap in the Information sector
+#starting with the Financial sector, the most correlated variable 
+lm1 <- lm(Information~Financial,data=pay_gap)
+summary(lm1)
+
+#second model, including also "Manufacturing" 
+lm2 <- lm(Information~Financial+Manufacturing,data=pay_gap)
+summary(lm2)
+
+#extending further, including also "Retail trade"
+lm3 <- lm(Information~Financial+Manufacturing+Retail,data=pay_gap)
+summary(lm3)
+
+# what about using ALL the avaialble variables as predictor set (BAD IDEA, in general)
+lm.tot <- lm(Information~.,data=pay_gap)
+summary(lm.tot)
+
+#let's prune off the one not significant in the model 
+#  --> WE EXPECT this to be the BEST model possible, from the predictive point of view...
+lm.red <- lm(Information~.-GDP-Industry-Accommodation-Health-Other-Country_numeric,data=pay_gap)
+summary(lm.red)
+
+#we have still non significant variables, so we are going to take off
+lm.red2 <- lm(Information~.-GDP-Industry-Accommodation-Health-Other-
+                Country_numeric-Business-Mining-Retail-RealEstate-Administrative,data=pay_gap)
+summary(lm.red2)
+
+#let's see what happens when we remove other predictors, starting from the less significant ones
+lm.red3 <- lm(Information~.-GDP-Industry-Accommodation-Health-Other-
+                Country_numeric-Business-Mining-Retail-RealEstate-
+                Administrative-ElectricitySupply-WaterSupply-Education,data=pay_gap)
+
+
+summary(lm.red3)
+
+#let's compare the models obtained, in a structured way
+anova(lm1, lm2, lm3) #lm2 is a good model
+anova(lm.red2, lm.red3,lm.red, lm.tot) #lm.red3, and lm.red are good models
+#We can conclude that lm.red3 is the best model
+
 lm.red3 <- lm(Information~.-GDP-Industry-Accommodation-Health-Other-
                 Country_numeric-Business-Mining-Retail-RealEstate-
                 PublicAdministration-ElectricitySupply-WaterSupply-Education,data=data2)
 test_predictions <- predict(lm.red3, newdata = test_data)
+
 # Evaluate the model performance of lm.red3
 test_actuals <- test_data$Information
 mse <- mean((test_predictions - test_actuals)^2)
@@ -178,7 +221,7 @@ sidebar <- dashboardSidebar(
                                choices = allcolumnNames,
                                selected = c("Information"),
                    ),
-                   selectInput("predicator","Predicators to remove:",
+                   selectInput("predicator","Predictors to remove:",
                                choices = allcolumnNames,
                                selected = c("GDP", "Industry", "Accommodation", "Health", "Other",
                                             "Country_numeric", "Business", "Mining", "Retail", "RealEstate",
@@ -208,12 +251,11 @@ body <- dashboardBody(
                               which means if GPG = 0.20, women earn 20% less than men in the same company.")),
                      h2("Our questions"),
                      div(HTML("<ul>
-                                  <li>What was the trend in the gender pay gap between female and male workers from 2010 to 2021?</li>
-                                  <li>Is there significant variation in the gender pay gap across European countries?</li>
-                                  <li>Are there variations in the gender pay gap across different professional fields?</li>
-                                  <li>Is there a correlation between urbanization and the gender pay gap?</li>
-                                  <li>Is there a correlation between GDP and the gender pay gap?</li>
+                                  <li>What was the trend in the gender pay gap between female and male workers from 2010 to 2021 ?</li>
                                   <li>Do we have a situation like ‘In the southern European countries, the gap is bigger than in the northern countries.’?</li>
+                                  <li>Which economic sectors are closely correlated ? </li>
+                                  <li>What factors influence in the gender pay gap in the information sector ?</li>
+                                  <li>When urban population increase in a certain amount how much is expected to change the gender pay gap ? </li>
                                   </ul>"))
                      
                  )
@@ -246,7 +288,7 @@ body <- dashboardBody(
       ),
       tabPanel("Line Plot", value=4,
                fluidRow(
-                 box(title = "Business line", width = 12, height = 1000, plotOutput("linePlot")),
+                 box(title = "Business line", width = 12, plotOutput("linePlot")),
                  box(title = "Description", width = 12,
                      div(HTML("Each <b>business line </b> was regrouped as:
                             <ul>

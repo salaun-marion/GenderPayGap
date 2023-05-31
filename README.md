@@ -16,15 +16,16 @@ Few information about how the directory works :
 
 ## How to launch the application ?
 
-You can open this directory on R Studio and then from the `app.R` file you have just to click on `Run App` in the right corner of the working panel. Then, enjoy !
+You can open this directory on R Studio and then from the `app.R` file, you have just to click on `Run App` in the right corner of the working panel. Then, enjoy !
 
 ## Which packages do I need to use ?
 
-Normaly thanks to the following command (line 10-12 in `app.R` file), you will not need to install manually all the packages : 
+Thanks to the following command (line 10-12 in `app.R` file), you will not need to install manually all the packages : 
 
-`if(!require('pacman'))install.packages('pacman')pacman::p_load(shiny,dplyr,tidyverse,ggplot2,maps,rworldmap,shinydashboard,reshape2,RColorBrewer,hexbin,bslib,gridExtra,readr,ERSA,tidymodels)`
+`if(!require('pacman'))install.packages('pacman')
+pacman::p_load(shiny,dplyr,tidyverse,ggplot2,maps,rworldmap,shinydashboard,reshape2,RColorBrewer,hexbin,bslib,gridExtra,readr,ERSA,tidymodels)`
                
-If by any chance, this command will not work, we invite you to install manually thanks to the `install.package('nameofthepackage')` command. You can replace `nameofthepackage` by the following names packages :
+If by any chance, this command will not work, we invite you to install manually the package, thanks to the `install.package('nameofthepackage')` command. You can replace `nameofthepackage` by the following names packages :
 
 - shiny
 - dplyr
@@ -42,4 +43,6 @@ If by any chance, this command will not work, we invite you to install manually 
 - ERSA
 - tidymodels
 
-## Which version of R was used to create the application ?**R version 4.3.0 (2023-04-21)**
+## Which version of R was used to create the application ?
+
+**R version 4.3.0 (2023-04-21)**
