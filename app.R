@@ -33,7 +33,7 @@ library(tidymodels)
 data <- read_csv("pay_gap_Europe.csv", show_col_types = FALSE)
 
 #create an average column
-data$Average <- rowMeans(data[,4:24], na.rm=T)
+data$Average <- rowMeans(data[,4:24])
 colnames(data) <- c("region","year","GDP","UrbanPopulation","Industry","Business","Mining", 
                     "Manufacturing","ElectricitySupply","WaterSupply","Construction",
                     "Retail","Transportation","Accommodation","Information",
@@ -144,7 +144,7 @@ sidebar <- dashboardSidebar(
                                value = 2010, step = 2, sep = "",
                                animate = TRUE),
                    selectInput("jobField", "Choose the Job field :",
-                               choices=selectedcolumn),
+                               choices=c(selectedcolumn,"Average")),
   ),
   conditionalPanel(condition="input.tabselected==3",
                    selectInput("variablesOne","Select variables:",
@@ -246,7 +246,7 @@ body <- dashboardBody(
       ),
       tabPanel("Line Plot", value=4,
                fluidRow(
-                 box(title = "Business line", width = 12, plotOutput("linePlot")),
+                 box(title = "Business line", width = 12, height = 1000, plotOutput("linePlot")),
                  box(title = "Description", width = 12,
                      div(HTML("Each <b>business line </b> was regrouped as:
                             <ul>
