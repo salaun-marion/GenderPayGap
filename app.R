@@ -14,7 +14,6 @@ pacman::p_load(shiny,dplyr,tidyverse,ggplot2,maps,rworldmap,shinydashboard,
 library(shiny)
 library(dplyr)
 library(tidyverse)
-library(tidyr)
 library(ggplot2)
 library(maps)
 library(rworldmap)
@@ -197,13 +196,13 @@ sidebar <- dashboardSidebar(
                    ),
                    selectInput("variablesTwo","Select variables:",
                                choices = c(businessLines,"Average","UrbanPopulation"),
-                               selected = c("UrbanPopulation"),
+                               selected = c("Information"),
                    ),
   ),
   conditionalPanel(condition="input.tabselected==4",
                    checkboxGroupInput("country","Select Country:",
                                       choices = selectedcountries,
-                                      selected = c("France","Spain")),
+                                      selected = c("Sweden","Switzerland")),
                    actionLink("selectall","Select All or Reset"),
   ),
   conditionalPanel(condition="input.tabselected==5",
@@ -249,7 +248,7 @@ body <- dashboardBody(
                      h2("About the Gender Pay Gap "),
                      div(HTML("<b>Gender Pay Gap (GPG)</b> is computed as : 
                               <em>(Men's Average Earnings - Women's Average Earnings) / Men's Average Earnings</em> 
-                              which means if GPG = 0.20, women earn 20% less than men in the same company.")),
+                              which means if GPG = 20, women earn 20% less than men in the same company.")),
                      h2("Our questions"),
                      div(HTML("<ul>
                                   <li>What was the trend in the gender pay gap between female and male workers from 2010 to 2021 ?</li>
@@ -269,7 +268,7 @@ body <- dashboardBody(
                  box(width = 3, height = 500, tableOutput("viewCountries2")),
                  div(HTML("<b>Gender Pay Gap (GPG)</b> is computed as : 
                      <em>(Men's Average Earnings - Women's Average Earnings) / Men's Average Earnings</em> 
-                       which means if GPG = 20, women earn 20% less than men in the same company."),style="text-align:center")
+                       which means if GPG = 20 in the dataset, women earn 20% less than men in the same company."),style="text-align:center")
                )
       ),
       tabPanel("Box plot", value=3,
@@ -403,29 +402,6 @@ server <- function(input, output, session) {
     
     plotLineData <- linearPayGap %>%
       pivot_longer(cols = -c("region","year","GDP","UrbanPopulation"), names_to = 'Domain', values_to = 'GPG')
-    # 
-    # plotLineData2 <- plotLineData %>%
-    #   mutate(JobSectors = case_when(Domain %in% c('Retail') ~ 'Trade and commerce',
-    #                                 Domain %in% c('Manufacturing') ~ 'Manufacturing and production',
-    #                                 Domain %in% c('ElectrictySupply', 'WaterSupply','Mining', 'Construction') ~ 'Primary Industry and Infrastructure',
-    #                                 Domain %in% c("Business","Transportation","Accommodation","Information",
-    #                                               "Financial","RealEstate","Science",
-    #                                               "Administrative") ~ 'Service and information',
-    #                                 Domain %in% c("Health","Art","Others","Education",
-    #                                               "PublicAdministration") ~ "Public sector and social services",
-    #   ))%>%
-    #   filter(region %in% countryname) %>%
-    #   na.exclude() %>%
-    #   group_by(region,JobSectors,year) %>%
-    #   summarize(GPG=mean(GPG,na.rm = FALSE))
-    # 
-    # plotLineData2 %>%
-    #   ggplot() +
-    #   geom_point(aes(x = year, y = GPG, color = (JobSectors), group = JobSectors)) +
-    #   geom_line(aes(x = year, y = GPG, color = (JobSectors), group = JobSectors)) +
-    #   facet_wrap(vars(region), ncol=5) +
-    #   theme_bw()
-    
     
     plotLineData2 <- plotLineData %>%
       mutate(JobSectors = case_when(Domain %in% c('Retail') ~ 'Trade and commerce',
