@@ -14,6 +14,7 @@ pacman::p_load(shiny,dplyr,tidyverse,ggplot2,maps,rworldmap,shinydashboard,
 library(shiny)
 library(dplyr)
 library(tidyverse)
+library(tidyr)
 library(ggplot2)
 library(maps)
 library(rworldmap)
@@ -268,7 +269,7 @@ body <- dashboardBody(
                  box(width = 3, height = 500, tableOutput("viewCountries2")),
                  div(HTML("<b>Gender Pay Gap (GPG)</b> is computed as : 
                      <em>(Men's Average Earnings - Women's Average Earnings) / Men's Average Earnings</em> 
-                       which means if GPG = 0.20, women earn 20% less than men in the same company."),style="text-align:center")
+                       which means if GPG = 20, women earn 20% less than men in the same company."),style="text-align:center")
                )
       ),
       tabPanel("Box plot", value=3,
@@ -277,7 +278,7 @@ body <- dashboardBody(
                  box(title = "References", width = 12,
                      div(HTML("According to the United Nations Geoscheme of Europe, each <b>country </b> was regrouped as :
                               <ul>
-                              <li>Central Europe  : France, Luxembourg , Netherlands, Belgium, Germany, Austria, Switzerland</li>
+                              <li>Western Europe  : France, Luxembourg , Netherlands, Belgium, Germany, Austria, Switzerland</li>
                               <li>Northern Europe : Denmark, Estonia, Finland, Latvia, Lithuania, Norway, Sweden</li>
                               <li>Eastern Europe : Bulgaria, Croatia, Romania, Czech Republic, Hungary, Poland, Slovakia</li>
                               <li>Southern Europe : Cyprus, Italy, Malta, Portugal, Spain, Slovenia</li>
@@ -402,6 +403,29 @@ server <- function(input, output, session) {
     
     plotLineData <- linearPayGap %>%
       pivot_longer(cols = -c("region","year","GDP","UrbanPopulation"), names_to = 'Domain', values_to = 'GPG')
+    # 
+    # plotLineData2 <- plotLineData %>%
+    #   mutate(JobSectors = case_when(Domain %in% c('Retail') ~ 'Trade and commerce',
+    #                                 Domain %in% c('Manufacturing') ~ 'Manufacturing and production',
+    #                                 Domain %in% c('ElectrictySupply', 'WaterSupply','Mining', 'Construction') ~ 'Primary Industry and Infrastructure',
+    #                                 Domain %in% c("Business","Transportation","Accommodation","Information",
+    #                                               "Financial","RealEstate","Science",
+    #                                               "Administrative") ~ 'Service and information',
+    #                                 Domain %in% c("Health","Art","Others","Education",
+    #                                               "PublicAdministration") ~ "Public sector and social services",
+    #   ))%>%
+    #   filter(region %in% countryname) %>%
+    #   na.exclude() %>%
+    #   group_by(region,JobSectors,year) %>%
+    #   summarize(GPG=mean(GPG,na.rm = FALSE))
+    # 
+    # plotLineData2 %>%
+    #   ggplot() +
+    #   geom_point(aes(x = year, y = GPG, color = (JobSectors), group = JobSectors)) +
+    #   geom_line(aes(x = year, y = GPG, color = (JobSectors), group = JobSectors)) +
+    #   facet_wrap(vars(region), ncol=5) +
+    #   theme_bw()
+    
     
     plotLineData2 <- plotLineData %>%
       mutate(JobSectors = case_when(Domain %in% c('Retail') ~ 'Trade and commerce',
@@ -410,18 +434,21 @@ server <- function(input, output, session) {
                                     Domain %in% c("Business","Transportation","Accommodation","Information",
                                                   "Financial","RealEstate","Science",
                                                   "Administrative") ~ 'Service and information',
-                                    is.na(Domain) ~ 'Public sector and social services',
-                                    TRUE ~ 'Others'
-      ))%>%
+                                    Domain %in% c("Health","Art","Others","Education",
+                                                  "PublicAdministration") ~ "Public sector and social services"
+      )) %>%
       filter(region %in% countryname) %>%
-      group_by(region,JobSectors,year) %>%
-      summarize(GPG=mean(GPG,na.rm = TRUE))
+      group_by(region, JobSectors, year) %>%
+      summarize(GPG = mean(GPG, na.rm = TRUE)) %>%
+      na.omit() %>%
+      ungroup() %>%
+      complete(region, JobSectors, year, fill = list(GPG = NA))
     
     plotLineData2 %>%
       ggplot() +
-      geom_point(aes(x = year, y = GPG, color = (JobSectors), group = JobSectors)) +
-      geom_line(aes(x = year, y = GPG, color = (JobSectors), group = JobSectors)) +
-      facet_wrap(vars(region), ncol=5) +
+      geom_point(aes(x = year, y = GPG, color = JobSectors, group = JobSectors)) +
+      geom_line(aes(x = year, y = GPG, color = JobSectors, group = interaction(JobSectors, region)), na.rm = TRUE) +
+      facet_wrap(vars(region), ncol = 5) +
       theme_bw()
     
   })
